@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { ActivityRecord } from '@/db/records';
 import { colors } from '@/theme/colors';
 import { countRecordedActivities, formatActivityCountTitle } from '@/utils/activity-summary';
+import { formatGroupDuration, groupConsecutiveRecords } from '@/utils/day-card';
 import { formatHourRange, formatKoreanDate, getHourlySlots } from '@/utils/time';
 
 type ShareCardProps = {
@@ -22,8 +23,10 @@ export function ShareCard({
   const activityCount = countRecordedActivities(records);
   const totalSlots = getHourlySlots(date).length;
   const unansweredCount = Math.max(0, totalSlots - records.length);
-  const visible = [...records].reverse().slice(0, 5);
-  const hiddenCount = Math.max(0, records.length - visible.length);
+  const groups = groupConsecutiveRecords(records);
+  const sceneCount = groups.filter((group) => group.status === 'recorded').length;
+  const visible = groups.slice(-5);
+  const hiddenCount = Math.max(0, groups.length - visible.length);
 
   return (
     <View style={styles.card}>
@@ -46,26 +49,27 @@ export function ShareCard({
 
       <View style={styles.moments}>
         {visible.length > 0 ? (
-          visible.map((record) => (
-            <View key={record.id} style={styles.momentRow}>
-              <Text style={styles.emoji}>{record.emoji ?? '—'}</Text>
+          visible.map((group) => (
+            <View key={group.id} style={styles.momentRow}>
+              <Text style={styles.emoji}>{group.emoji ?? '—'}</Text>
               <View style={styles.momentCopy}>
                 <View style={styles.labelRow}>
                   <Text numberOfLines={1} style={styles.label}>
-                    {record.status === 'skipped' ? '쉬어간 시간' : record.activityLabel}
+                    {group.status === 'skipped' ? '쉬어간 시간' : group.activityLabel}
                   </Text>
-                  {showTimes ? (
-                    <Text style={styles.time}>
-                      {formatHourRange(
-                        new Date(record.intervalStart),
-                        new Date(record.intervalEnd),
-                      )}
-                    </Text>
-                  ) : null}
                 </View>
-                {showNotes && record.note ? (
+                {showTimes ? (
+                  <Text style={styles.time}>
+                    {formatHourRange(
+                      new Date(group.intervalStart),
+                      new Date(group.intervalEnd),
+                    )}{' '}
+                    · {formatGroupDuration(group)}
+                  </Text>
+                ) : null}
+                {showNotes && group.notes.length > 0 ? (
                   <Text numberOfLines={1} style={styles.note}>
-                    {record.note}
+                    {group.notes.slice(0, 2).join(' · ')}
                   </Text>
                 ) : null}
               </View>
@@ -81,7 +85,7 @@ export function ShareCard({
 
       <View style={styles.footer}>
         <View>
-          <Text style={styles.metricValue}>{recorded.length}</Text>
+          <Text style={styles.metricValue}>{sceneCount}</Text>
           <Text style={styles.metricLabel}>남긴 장면</Text>
         </View>
         <View style={styles.footerRule} />
@@ -190,7 +194,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   time: {
-    marginLeft: 8,
+    marginTop: 3,
     color: '#AFA7B3',
     fontSize: 9,
   },

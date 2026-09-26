@@ -1,5 +1,11 @@
 import type { ActivityRecord } from '@/db/records';
-import { getActivityColor, getDayClockRecords, pickSceneRecords } from '@/utils/day-card';
+import {
+  formatGroupDuration,
+  getActivityColor,
+  getDayClockRecords,
+  groupConsecutiveRecords,
+  pickSceneGroups,
+} from '@/utils/day-card';
 
 function makeRecord(hour: number, overrides: Partial<ActivityRecord> = {}): ActivityRecord {
   const start = new Date(2026, 8, 26, hour).getTime();
@@ -30,11 +36,32 @@ describe('day card presentation', () => {
     expect(hours[23].hour).toBe(3);
   });
 
-  it('picks up to four recorded scenes spread across the day', () => {
+  it('groups consecutive records of the same activity into one scene', () => {
+    const records = [
+      makeRecord(8, { note: '자료 정리' }),
+      makeRecord(9, { note: '회의' }),
+      makeRecord(10, { activityKey: 'meal', activityLabel: '식사' }),
+      makeRecord(12),
+    ];
+    const groups = groupConsecutiveRecords(records);
+
+    expect(groups).toHaveLength(3);
+    expect(groups[0].records).toHaveLength(2);
+    expect(groups[0].notes).toEqual(['자료 정리', '회의']);
+    expect(formatGroupDuration(groups[0])).toBe('2시간');
+    expect(groups[2].records).toHaveLength(1);
+  });
+
+  it('picks up to four grouped scenes spread across the day', () => {
     const records = Array.from({ length: 8 }, (_, index) => makeRecord(index + 4));
     records[3] = makeRecord(7, { status: 'skipped', activityKey: null });
+    records[4] = makeRecord(8, { activityKey: 'meal', activityLabel: '식사' });
+    records[5] = makeRecord(9, { activityKey: 'travel', activityLabel: '이동' });
+    records[6] = makeRecord(10, { activityKey: 'rest', activityLabel: '휴식' });
 
-    expect(pickSceneRecords(records).map((record) => record.id)).toEqual([4, 6, 9, 11]);
+    expect(pickSceneGroups(records).map((group) => group.records[0].id)).toEqual([
+      4, 8, 10, 11,
+    ]);
   });
 
   it('keeps skipped and missing time visually uncolored', () => {

@@ -4,7 +4,13 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ActivityRecord } from '@/db/records';
 import { colors } from '@/theme/colors';
 import { countRecordedActivities, formatActivityCountTitle } from '@/utils/activity-summary';
-import { getActivityColor, getDayClockRecords, pickSceneRecords } from '@/utils/day-card';
+import {
+  formatGroupDuration,
+  getActivityColor,
+  getDayClockRecords,
+  groupConsecutiveRecords,
+  pickSceneGroups,
+} from '@/utils/day-card';
 import { formatHourRange, formatKoreanDate, getHourlySlots } from '@/utils/time';
 
 type DayCardProps = {
@@ -19,7 +25,10 @@ export function DayCard({ records, now = new Date() }: DayCardProps) {
   const totalSlots = getHourlySlots(now).length;
   const unansweredCount = Math.max(0, totalSlots - records.length);
   const clockRecords = getDayClockRecords(records);
-  const scenes = pickSceneRecords(records);
+  const sceneCount = groupConsecutiveRecords(records).filter(
+    (group) => group.status === 'recorded',
+  ).length;
+  const scenes = pickSceneGroups(records);
 
   return (
     <View style={styles.card}>
@@ -87,7 +96,7 @@ export function DayCard({ records, now = new Date() }: DayCardProps) {
             <Text style={[styles.clockLabel, styles.clockLabel12]}>12</Text>
             <Text style={[styles.clockLabel, styles.clockLabel18]}>18</Text>
             <View style={styles.clockCenter}>
-              <Text style={styles.clockValue}>{recorded.length}</Text>
+              <Text style={styles.clockValue}>{sceneCount}</Text>
               <Text style={styles.clockCaption}>남긴 장면</Text>
             </View>
           </View>
@@ -97,11 +106,11 @@ export function DayCard({ records, now = new Date() }: DayCardProps) {
         <View style={styles.scenePanel}>
           {scenes.length > 0 ? (
             <View style={styles.sceneGrid}>
-              {scenes.map((record, index) => {
-                const activityColor = getActivityColor(record) ?? colors.coral;
+              {scenes.map((group, index) => {
+                const activityColor = getActivityColor(group.records[0]) ?? colors.coral;
                 return (
                   <View
-                    key={record.id}
+                    key={group.id}
                     style={[
                       styles.sceneFrame,
                       index % 4 === 0 || index % 4 === 3
@@ -112,20 +121,21 @@ export function DayCard({ records, now = new Date() }: DayCardProps) {
                   >
                     <View style={[styles.sceneAccent, { backgroundColor: activityColor }]} />
                     <View style={styles.sceneTopRow}>
-                      <Text style={styles.sceneEmoji}>{record.emoji ?? '✦'}</Text>
+                      <Text style={styles.sceneEmoji}>{group.emoji ?? '✦'}</Text>
                       <Text style={styles.sceneTime}>
                         {formatHourRange(
-                          new Date(record.intervalStart),
-                          new Date(record.intervalEnd),
-                        )}
+                          new Date(group.intervalStart),
+                          new Date(group.intervalEnd),
+                        )}{' '}
+                        · {formatGroupDuration(group)}
                       </Text>
                     </View>
                     <Text numberOfLines={1} style={styles.sceneLabel}>
-                      {record.note?.trim() || record.activityLabel}
+                      {group.activityLabel}
                     </Text>
-                    {record.note?.trim() ? (
+                    {group.notes[0] ? (
                       <Text numberOfLines={1} style={styles.sceneActivity}>
-                        {record.activityLabel}
+                        {group.notes[0]}
                       </Text>
                     ) : null}
                   </View>
@@ -168,7 +178,7 @@ export function DayCard({ records, now = new Date() }: DayCardProps) {
 
       <View style={styles.footerRow}>
         <View>
-          <Text style={styles.metricValue}>{recorded.length}</Text>
+          <Text style={styles.metricValue}>{sceneCount}</Text>
           <Text style={styles.metricLabel}>남긴 장면</Text>
         </View>
         <View style={styles.footerRule} />
