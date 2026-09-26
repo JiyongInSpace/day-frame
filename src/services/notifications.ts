@@ -78,8 +78,8 @@ export async function enableReminders(preferences: ReminderPreferences) {
   for (const time of getDailyReminderTimes(preferences)) {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '지난 한 시간, 뭐 했어?',
-        body: '가장 오래 한 활동 하나만 가볍게 남겨 봐.',
+        title: '지난 한 시간, 뭐 했어요?',
+        body: '가장 오래 한 활동 하나만 가볍게 남겨 봐요.',
         data: { type: REMINDER_TYPE, url: '/record' },
       },
       trigger: {
@@ -110,7 +110,7 @@ export async function scheduleTestReminder() {
   await Notifications.scheduleNotificationAsync({
     content: {
       title: 'DayFrame 알림 테스트 ✦',
-      body: '알림이 잘 도착했어. 지난 한 시간을 기록해 볼까?',
+      body: '알림이 잘 도착했어요. 지난 한 시간을 기록해 볼까요?',
       data: { type: 'test-reminder', url: '/record' },
     },
     trigger: {

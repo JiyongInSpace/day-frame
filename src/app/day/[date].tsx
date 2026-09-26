@@ -53,7 +53,7 @@ export default function DayDetailScreen() {
               <Text style={styles.shareText}>이날의 카드 저장 · 공유</Text>
             </Pressable>
             <Text style={styles.timelineTitle}>시간표</Text>
-            <Text style={styles.timelineGuide}>기록을 눌러 내용을 고치거나 빈 시간을 채울 수 있어.</Text>
+            <Text style={styles.timelineGuide}>기록을 눌러 내용을 고치거나 빈 시간을 채울 수 있어요.</Text>
             <DayTimeline date={date} records={records} />
           </>
         )}

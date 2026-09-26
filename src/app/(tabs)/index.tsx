@@ -18,7 +18,7 @@ export default function TodayScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.brand}>DayFrame</Text>
-            <Text style={styles.subtitle}>오늘은 어떻게 흘러가고 있어?</Text>
+            <Text style={styles.subtitle}>오늘은 어떻게 흘러가고 있어요?</Text>
           </View>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>D</Text>
@@ -43,7 +43,7 @@ export default function TodayScreen() {
           </View>
           <View style={styles.buttonCopy}>
             <Text style={styles.buttonTitle}>지난 한 시간 기록하기</Text>
-            <Text style={styles.buttonSubtitle}>몇 번의 탭이면 충분해</Text>
+            <Text style={styles.buttonSubtitle}>몇 번의 탭이면 충분해요</Text>
           </View>
           <Text style={styles.arrow}>›</Text>
         </Pressable>
@@ -59,7 +59,7 @@ export default function TodayScreen() {
         </Pressable>
 
         <Text style={styles.privacyNote}>
-          기록은 이 기기에만 머물러. 공유는 네가 원할 때만 할 수 있어.
+          기록은 이 기기에만 머물러요. 공유는 원할 때만 할 수 있어요.
         </Text>
       </ScrollView>
     </SafeAreaView>

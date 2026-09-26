@@ -18,8 +18,8 @@ export function DayTimeline({ date, records }: DayTimelineProps) {
     return (
       <View style={styles.emptyCard}>
         <Text style={styles.emptyEmoji}>☾</Text>
-        <Text style={styles.emptyTitle}>아직 완성된 시간 구간이 없어</Text>
-        <Text style={styles.emptyBody}>한 시간이 지나면 여기에 기록할 자리가 생겨.</Text>
+        <Text style={styles.emptyTitle}>아직 완성된 시간 구간이 없어요</Text>
+        <Text style={styles.emptyBody}>한 시간이 지나면 여기에 기록할 자리가 생겨요.</Text>
       </View>
     );
   }
@@ -47,7 +47,7 @@ export function DayTimeline({ date, records }: DayTimelineProps) {
                       ? '건너뜀'
                       : record.activityLabel
                 }`}
-                accessibilityHint="이 시간의 활동을 기록하거나 수정해"
+                accessibilityHint="이 시간의 활동을 기록하거나 수정할 수 있어요"
                 accessibilityRole="button"
                 onPress={() =>
                   router.push({
@@ -65,9 +65,9 @@ export function DayTimeline({ date, records }: DayTimelineProps) {
                 <View style={styles.entryCopy}>
                   <Text style={[styles.entryTitle, isEmpty && styles.entryTitleEmpty]}>
                     {isEmpty
-                      ? '아직 기록하지 않았어'
+                      ? '아직 기록하지 않았어요'
                       : isSkipped
-                        ? '이번 시간은 건너뛰었어'
+                        ? '이번 시간은 건너뛰었어요'
                         : record.activityLabel}
                   </Text>
                   {record?.note ? (

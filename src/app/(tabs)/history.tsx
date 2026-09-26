@@ -35,7 +35,7 @@ export default function HistoryScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.eyebrow}>지난 프레임</Text>
         <Text style={styles.title}>쌓여 온 하루들</Text>
-        <Text style={styles.description}>기록한 날을 눌러 카드와 시간표를 다시 볼 수 있어.</Text>
+        <Text style={styles.description}>기록한 날을 눌러 카드와 시간표를 다시 볼 수 있어요.</Text>
 
         {loading ? (
           <ActivityIndicator style={styles.loader} color={colors.coral} />
@@ -43,7 +43,7 @@ export default function HistoryScreen() {
           <View style={styles.emptyCard}>
             <Text style={styles.emptyEmoji}>◇</Text>
             <Text style={styles.emptyTitle}>첫 번째 하루를 기다리는 중</Text>
-            <Text style={styles.emptyBody}>오늘 기록을 남기면 여기에 차곡차곡 모여.</Text>
+            <Text style={styles.emptyBody}>오늘 기록을 남기면 여기에 차곡차곡 모여요.</Text>
           </View>
         ) : (
           <View style={styles.list}>

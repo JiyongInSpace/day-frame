@@ -51,8 +51,8 @@ export function ShareCard({
       <Text style={styles.date}>{formatKoreanDate(date)}</Text>
       <Text style={styles.title}>
         {dominant
-          ? `${dominant[1].emoji} ${dominant[0]}의 결이\n남은 하루였어`
-          : '비어 있는 순간까지\n오늘의 모양이야'}
+          ? `${dominant[1].emoji} ${dominant[0]}의 결이\n남은 하루였어요`
+          : '비어 있는 순간까지\n오늘의 모양이에요'}
       </Text>
 
       <View style={styles.rule} />
@@ -85,7 +85,7 @@ export function ShareCard({
             </View>
           ))
         ) : (
-          <Text style={styles.empty}>아직 남긴 장면이 없어도 괜찮아.</Text>
+          <Text style={styles.empty}>아직 남긴 장면이 없어도 괜찮아요.</Text>
         )}
         {hiddenCount > 0 ? (
           <Text style={styles.more}>그리고 {hiddenCount}개의 장면</Text>

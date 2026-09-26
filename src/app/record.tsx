@@ -121,7 +121,7 @@ export default function RecordScreen() {
       });
       router.back();
     } catch {
-      Alert.alert('기록하지 못했어', '잠시 후 다시 시도해 줘.');
+      Alert.alert('기록하지 못했어요', '잠시 후 다시 시도해 주세요.');
       setSaving(false);
     }
   };
@@ -129,7 +129,7 @@ export default function RecordScreen() {
   const continuePrevious = async () => {
     const previous = await getLatestRecordedActivity(db);
     if (!previous?.activityKey || !previous.activityLabel || !previous.emoji) {
-      Alert.alert('이어갈 기록이 없어', '먼저 활동을 하나 남겨 줘.');
+      Alert.alert('이어갈 기록이 없어요', '먼저 활동을 하나 남겨 주세요.');
       return;
     }
     setSelectedActivity({
@@ -143,7 +143,7 @@ export default function RecordScreen() {
   const selectCustom = () => {
     const label = customActivity.trim();
     if (!label) {
-      Alert.alert('활동을 적어 줘', '지난 한 시간을 한마디로 남겨 볼까?');
+      Alert.alert('활동을 적어 주세요', '지난 한 시간을 한마디로 남겨 볼까요?');
       return;
     }
     setSelectedActivity({ key: `custom:${label}`, label, emoji: '✏️' });
@@ -151,7 +151,7 @@ export default function RecordScreen() {
   };
 
   const removeRecord = () => {
-    Alert.alert('이 기록을 삭제할까?', '삭제하면 이 시간은 다시 미기록으로 표시돼.', [
+    Alert.alert('이 기록을 삭제할까요?', '삭제하면 이 시간은 다시 미기록으로 표시돼요.', [
       { text: '취소', style: 'cancel' },
       {
         text: '삭제',
@@ -177,10 +177,10 @@ export default function RecordScreen() {
         >
           <Text style={styles.time}>{formatHourRange(interval.start, interval.end)}</Text>
           <Text style={styles.title}>
-            {existingRecordId ? '이 시간의 기록을\n고쳐볼까?' : '지난 한 시간,\n주로 뭐 했어?'}
+            {existingRecordId ? '이 시간의 기록을\n고쳐볼까요?' : '지난 한 시간,\n주로 뭐 했어요?'}
           </Text>
           <Text style={styles.description}>
-            정확하지 않아도 괜찮아. 가장 오래 한 활동 하나만 골라 줘.
+            정확하지 않아도 괜찮아요. 가장 오래 한 활동 하나만 골라 주세요.
           </Text>
 
           <View pointerEvents={loadingRecord ? 'none' : 'auto'} style={styles.activityGrid}>
@@ -244,7 +244,7 @@ export default function RecordScreen() {
               maxLength={120}
               multiline
               onChangeText={setNote}
-              placeholder="기억하고 싶은 장면이 있었어?"
+              placeholder="기억하고 싶은 장면이 있었어요?"
               placeholderTextColor="#A69D94"
               style={styles.noteInput}
               textAlignVertical="top"
@@ -265,7 +265,7 @@ export default function RecordScreen() {
             <Text style={styles.saveButtonText}>
               {selectedActivity
                 ? `${selectedActivity.emoji} ${selectedActivity.label} · 이대로 기록`
-                : '활동을 먼저 골라 줘'}
+                : '활동을 먼저 골라 주세요'}
             </Text>
           </Pressable>
 

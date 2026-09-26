@@ -40,8 +40,8 @@ export function DayCard({ records, now = new Date() }: DayCardProps) {
       <Text style={styles.date}>{formatKoreanDate(now)}</Text>
       <Text style={styles.title}>
         {dominant
-          ? `${dominant[1].emoji} ${dominant[0]}의 결이\n남은 하루였어`
-          : '아직 비어 있는 오늘도\n천천히 채워질 거야'}
+          ? `${dominant[1].emoji} ${dominant[0]}의 결이\n남은 하루였어요`
+          : '아직 비어 있는 오늘도\n천천히 채워질 거예요'}
       </Text>
 
       <View style={styles.divider} />
@@ -62,7 +62,7 @@ export function DayCard({ records, now = new Date() }: DayCardProps) {
         </View>
       ) : (
         <Text style={styles.emptyText}>
-          지난 한 시간을 남기면{`\n`}오늘의 장면이 여기 모여.
+          지난 한 시간을 남기면{`\n`}오늘의 장면이 여기 모여요.
         </Text>
       )}
 

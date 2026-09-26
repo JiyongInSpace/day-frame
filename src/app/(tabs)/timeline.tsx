@@ -14,9 +14,9 @@ export default function TimelineScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.eyebrow}>오늘의 일정표</Text>
-        <Text style={styles.title}>시간의 결을 따라가 봐</Text>
+        <Text style={styles.title}>시간의 결을 따라가 봐요</Text>
         <Text style={styles.date}>{formatKoreanDate(now)}</Text>
-        <Text style={styles.guide}>비어 있거나 고치고 싶은 시간을 눌러 줘.</Text>
+        <Text style={styles.guide}>비어 있거나 고치고 싶은 시간을 눌러 주세요.</Text>
 
         {loading ? (
           <ActivityIndicator style={styles.loader} color={colors.coral} />

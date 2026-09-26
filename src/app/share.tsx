@@ -121,7 +121,7 @@ export default function ShareScreen() {
         <View style={styles.topRow}>
           <View>
             <Text style={styles.heading}>공유할 장면 고르기</Text>
-            <Text style={styles.description}>시간과 메모는 기본으로 숨겨져 있어.</Text>
+            <Text style={styles.description}>시간과 메모는 기본으로 숨겨져 있어요.</Text>
           </View>
           <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.closeButton}>
             <Text style={styles.closeText}>닫기</Text>

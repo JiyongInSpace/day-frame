@@ -121,8 +121,8 @@ export default function SettingsScreen() {
 
       if (enabled && !nextState.enabled) {
         Alert.alert(
-          '알림이 꺼져 있어',
-          '기기 설정에서 DayFrame 알림을 허용하면 기록을 떠올려 줄게.',
+          '알림이 꺼져 있어요',
+          '기기 설정에서 DayFrame 알림을 허용하면 기록을 떠올려 드릴게요.',
           [
             { text: '나중에', style: 'cancel' },
             { text: '설정 열기', onPress: () => void Linking.openSettings() },
@@ -130,7 +130,7 @@ export default function SettingsScreen() {
         );
       }
     } catch {
-      Alert.alert('알림을 설정하지 못했어', '잠시 후 다시 시도해 줘.');
+      Alert.alert('알림을 설정하지 못했어요', '잠시 후 다시 시도해 주세요.');
     } finally {
       setUpdating(false);
     }
@@ -143,9 +143,9 @@ export default function SettingsScreen() {
       if (reminderState.enabled) {
         setReminderState(await enableReminders(preferences));
       }
-      Alert.alert('알림 시간을 저장했어');
+      Alert.alert('알림 시간을 저장했어요');
     } catch {
-      Alert.alert('설정을 저장하지 못했어', '잠시 후 다시 시도해 줘.');
+      Alert.alert('설정을 저장하지 못했어요', '잠시 후 다시 시도해 주세요.');
     } finally {
       setUpdating(false);
     }
@@ -154,8 +154,8 @@ export default function SettingsScreen() {
   const testReminder = async () => {
     const scheduled = await scheduleTestReminder();
     Alert.alert(
-      scheduled ? '테스트 알림을 예약했어' : '먼저 알림을 켜 줘',
-      scheduled ? '약 1분 뒤에 알림이 도착할 거야.' : '활동 기록 알림을 켠 뒤 테스트해 줘.',
+      scheduled ? '테스트 알림을 예약했어요' : '먼저 알림을 켜 주세요',
+      scheduled ? '약 1분 뒤에 알림이 도착할 거예요.' : '활동 기록 알림을 켠 뒤 테스트해 주세요.',
     );
   };
 
@@ -165,9 +165,9 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.eyebrow}>설정</Text>
-        <Text style={styles.title}>부담 없이,{`\n`}잊지 않을 만큼만</Text>
+        <Text style={styles.title}>부담 없이,{`\n`}잊지 않을 만큼만 알려드려요</Text>
         <Text style={styles.description}>
-          알림에는 활동이나 메모가 표시되지 않아. 잠금 화면에서도 네 기록은 드러나지 않아.
+          알림에는 활동이나 메모가 표시되지 않아요. 잠금 화면에서도 기록은 드러나지 않아요.
         </Text>
 
         <View style={styles.reminderCard}>
@@ -252,7 +252,7 @@ export default function SettingsScreen() {
         <View style={styles.noteCard}>
           <Text style={styles.noteSymbol}>i</Text>
           <Text style={styles.noteText}>
-            Android의 절전 설정에 따라 알림이 조금 늦을 수 있어. DayFrame은 불필요한 정확 알람 권한을 요구하지 않아.
+            Android의 절전 설정에 따라 알림이 조금 늦을 수 있어요. DayFrame은 불필요한 정확 알람 권한을 요구하지 않아요.
           </Text>
         </View>
 
