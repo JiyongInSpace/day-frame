@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -41,7 +42,11 @@ const activities: ActivityOption[] = [
 export default function RecordScreen() {
   const db = useSQLiteContext();
   const scrollViewRef = useRef<ScrollView>(null);
-  const customInputY = useRef(0);
+  const customInputRef = useRef<TextInput>(null);
+  const noteInputRef = useRef<TextInput>(null);
+  const focusedInputRef = useRef<TextInput | null>(null);
+  const keyboardTop = useRef(Number.POSITIVE_INFINITY);
+  const scrollOffset = useRef(0);
   const { start } = useLocalSearchParams<{ start?: string }>();
   const interval = useMemo(() => {
     const requestedStart = Number(start);
@@ -69,6 +74,7 @@ export default function RecordScreen() {
   const [existingRecordId, setExistingRecordId] = useState<number | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -164,14 +170,48 @@ export default function RecordScreen() {
     setSelectedSource('custom');
   };
 
-  const revealCustomInput = () => {
-    requestAnimationFrame(() => {
+  const scrollToFocusedInput = useCallback(() => {
+    const input = focusedInputRef.current;
+    if (!input || !Number.isFinite(keyboardTop.current)) {
+      return;
+    }
+
+    input.measureInWindow((_x, y, _width, height) => {
+      const overlap = y + height + 20 - keyboardTop.current;
+      if (overlap <= 0) {
+        return;
+      }
+
       scrollViewRef.current?.scrollTo({
-        y: Math.max(customInputY.current - 16, 0),
+        y: scrollOffset.current + overlap,
         animated: true,
       });
     });
+  }, []);
+
+  const revealInput = (input: TextInput | null) => {
+    focusedInputRef.current = input;
+    requestAnimationFrame(scrollToFocusedInput);
+    setTimeout(scrollToFocusedInput, 350);
   };
+
+  useEffect(() => {
+    const eventName = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const showSubscription = Keyboard.addListener(eventName, (event) => {
+      keyboardTop.current = event.endCoordinates.screenY;
+      setKeyboardInset(event.endCoordinates.height);
+      setTimeout(scrollToFocusedInput, 50);
+    });
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      keyboardTop.current = Number.POSITIVE_INFINITY;
+      focusedInputRef.current = null;
+      setKeyboardInset(0);
+    });
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [scrollToFocusedInput]);
 
   const removeRecord = () => {
     Alert.alert('이 기록을 삭제할까요?', '삭제하면 이 시간은 다시 미기록으로 표시돼요.', [
@@ -194,9 +234,16 @@ export default function RecordScreen() {
         style={styles.flex}
       >
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            keyboardInset > 0 && { paddingBottom: 44 + keyboardInset },
+          ]}
           keyboardShouldPersistTaps="handled"
+          onScroll={({ nativeEvent }) => {
+            scrollOffset.current = nativeEvent.contentOffset.y;
+          }}
           ref={scrollViewRef}
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.time}>{formatHourRange(interval.start, interval.end)}</Text>
@@ -250,21 +297,17 @@ export default function RecordScreen() {
           </View>
 
           {showCustomInput ? (
-            <View
-              onLayout={({ nativeEvent }) => {
-                customInputY.current = nativeEvent.layout.y;
-              }}
-              style={styles.inputSection}
-            >
+            <View style={styles.inputSection}>
               <Text style={styles.inputLabel}>어떤 활동이었어요?</Text>
               <View style={styles.customRow}>
                 <TextInput
                   autoFocus
                   maxLength={24}
                   onChangeText={setCustomActivity}
-                  onFocus={revealCustomInput}
+                  onFocus={() => revealInput(customInputRef.current)}
                   placeholder="예: 산책, 회의, 낮잠"
                   placeholderTextColor="#A69D94"
+                  ref={customInputRef}
                   style={styles.customInput}
                   value={customActivity}
                 />
@@ -298,8 +341,10 @@ export default function RecordScreen() {
               maxLength={120}
               multiline
               onChangeText={setNote}
+              onFocus={() => revealInput(noteInputRef.current)}
               placeholder="기억하고 싶은 장면이 있었어요?"
               placeholderTextColor="#A69D94"
+              ref={noteInputRef}
               style={styles.noteInput}
               textAlignVertical="top"
               value={note}
