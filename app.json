@@ -46,6 +46,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ea19e4b1-b6ed-49ae-9798-d4cb270c7557"
+      }
+    },
+    "owner": "jiyonginspace"
   }
 }
