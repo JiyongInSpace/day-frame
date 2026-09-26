@@ -19,6 +19,7 @@ import {
   getLatestRecordedActivity,
   getRecordByIntervalStart,
   saveRecord,
+  type ActivityRecord,
   type RecordSource,
 } from '@/db/records';
 import { colors } from '@/theme/colors';
@@ -64,6 +65,7 @@ export default function RecordScreen() {
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<ActivityOption | null>(null);
   const [selectedSource, setSelectedSource] = useState<RecordSource>('quick');
+  const [previousRecord, setPreviousRecord] = useState<ActivityRecord | null>(null);
   const [existingRecordId, setExistingRecordId] = useState<number | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -73,12 +75,16 @@ export default function RecordScreen() {
 
     async function loadExistingRecord() {
       setLoadingRecord(true);
-      const record = await getRecordByIntervalStart(db, intervalStart);
+      const [record, previous] = await Promise.all([
+        getRecordByIntervalStart(db, intervalStart),
+        getLatestRecordedActivity(db, intervalStart),
+      ]);
       if (!active) {
         return;
       }
 
       setExistingRecordId(record?.id ?? null);
+      setPreviousRecord(previous);
       setNote(record?.note ?? '');
       setSelectedSource(record?.source ?? 'quick');
 
@@ -133,19 +139,19 @@ export default function RecordScreen() {
   };
 
   const continuePrevious = async () => {
-    const previous = await getLatestRecordedActivity(db);
-    if (!previous?.activityKey || !previous.activityLabel || !previous.emoji) {
-      Alert.alert('이어갈 기록이 없어요', '먼저 활동을 하나 남겨 주세요.');
+    if (!previousRecord?.activityKey || !previousRecord.activityLabel || !previousRecord.emoji) {
       return;
     }
     setSelectedActivity({
-      key: previous.activityKey,
-      label: previous.activityLabel,
-      emoji: previous.emoji,
+      key: previousRecord.activityKey,
+      label: previousRecord.activityLabel,
+      emoji: previousRecord.emoji,
     });
     setSelectedSource('continued');
-    setCustomActivity(previous.activityKey.startsWith('custom:') ? previous.activityLabel : '');
-    setShowCustomInput(previous.activityKey.startsWith('custom:'));
+    setCustomActivity(
+      previousRecord.activityKey.startsWith('custom:') ? previousRecord.activityLabel : '',
+    );
+    setShowCustomInput(previousRecord.activityKey.startsWith('custom:'));
   };
 
   const selectCustom = () => {
@@ -274,15 +280,17 @@ export default function RecordScreen() {
             </View>
           ) : null}
 
-          <Pressable
-            accessibilityRole="button"
-            disabled={saving || loadingRecord}
-            onPress={() => void continuePrevious()}
-            style={({ pressed }) => [styles.continueButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.continueIcon}>↻</Text>
-            <Text style={styles.continueText}>아까 하던 거 계속</Text>
-          </Pressable>
+          {previousRecord ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={saving || loadingRecord}
+              onPress={() => void continuePrevious()}
+              style={({ pressed }) => [styles.continueButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.continueIcon}>↻</Text>
+              <Text style={styles.continueText}>아까 하던 거 계속</Text>
+            </Pressable>
+          ) : null}
 
           <View style={styles.inputSection}>
             <Text style={styles.inputLabel}>짧은 메모 · 선택</Text>

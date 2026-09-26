@@ -124,12 +124,18 @@ export async function listAllRecords(db: SQLiteDatabase) {
   return rows.map(mapRecord);
 }
 
-export async function getLatestRecordedActivity(db: SQLiteDatabase) {
+export async function getLatestRecordedActivity(
+  db: SQLiteDatabase,
+  beforeIntervalStart?: number,
+) {
+  const beforeClause = beforeIntervalStart === undefined ? '' : 'AND interval_start < ?';
   const row = await db.getFirstAsync<ActivityRecordRow>(
     `SELECT * FROM activity_records
      WHERE status = 'recorded'
+     ${beforeClause}
      ORDER BY interval_start DESC
      LIMIT 1`,
+    ...(beforeIntervalStart === undefined ? [] : [beforeIntervalStart]),
   );
   return row ? mapRecord(row) : null;
 }
