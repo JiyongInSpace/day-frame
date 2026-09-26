@@ -6,6 +6,12 @@ export type ReminderPreferences = {
   intervalMinutes: 30 | 60 | 120;
 };
 
+export type CustomActivity = {
+  key: string;
+  label: string;
+  emoji: string;
+};
+
 export const DEFAULT_REMINDER_PREFERENCES: ReminderPreferences = {
   startHour: 9,
   endHour: 22,
@@ -39,6 +45,42 @@ export async function hasCompletedOnboarding(db: SQLiteDatabase) {
 
 export async function completeOnboarding(db: SQLiteDatabase) {
   await setSetting(db, 'onboardingCompleted', 'true');
+}
+
+export async function getCustomActivities(db: SQLiteDatabase): Promise<CustomActivity[]> {
+  const value = await getSetting(db, 'customActivities');
+  if (!value) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .filter(
+        (activity): activity is CustomActivity =>
+          typeof activity === 'object' &&
+          activity !== null &&
+          'key' in activity &&
+          typeof activity.key === 'string' &&
+          activity.key.startsWith('user:') &&
+          'label' in activity &&
+          typeof activity.label === 'string' &&
+          activity.label.trim().length > 0 &&
+          'emoji' in activity &&
+          typeof activity.emoji === 'string' &&
+          activity.emoji.length > 0,
+      )
+      .slice(0, 24);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveCustomActivities(
+  db: SQLiteDatabase,
+  activities: CustomActivity[],
+) {
+  await setSetting(db, 'customActivities', JSON.stringify(activities.slice(0, 24)));
 }
 
 function readHour(value: string | null, fallback: number) {

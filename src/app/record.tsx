@@ -23,6 +23,11 @@ import {
   type ActivityRecord,
   type RecordSource,
 } from '@/db/records';
+import {
+  getCustomActivities,
+  saveCustomActivities,
+  type CustomActivity,
+} from '@/db/settings';
 import { colors } from '@/theme/colors';
 import { formatHourRange, getLastCompletedHour, startOfHour } from '@/utils/time';
 
@@ -38,6 +43,8 @@ const activities: ActivityOption[] = [
   { key: 'housework', label: '집안일', emoji: '🧺' },
   { key: 'hobby', label: '취미', emoji: '🎧' },
 ];
+
+const customEmojis = ['✏️', '☕', '💬', '🚶', '🛒', '🎮', '📖', '💤', '🎨', '🎵', '🧘', '👥'];
 
 export default function RecordScreen() {
   const db = useSQLiteContext();
@@ -67,6 +74,10 @@ export default function RecordScreen() {
   const intervalStart = interval.start.getTime();
   const [note, setNote] = useState('');
   const [customActivity, setCustomActivity] = useState('');
+  const [customEmoji, setCustomEmoji] = useState(customEmojis[0]);
+  const [customActivities, setCustomActivities] = useState<CustomActivity[]>([]);
+  const [editingCustomKey, setEditingCustomKey] = useState<string | null>(null);
+  const [customInputKind, setCustomInputKind] = useState<'other' | 'chip'>('other');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<ActivityOption | null>(null);
   const [selectedSource, setSelectedSource] = useState<RecordSource>('quick');
@@ -74,6 +85,7 @@ export default function RecordScreen() {
   const [existingRecordId, setExistingRecordId] = useState<number | null>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingCustomActivity, setSavingCustomActivity] = useState(false);
   const [keyboardInset, setKeyboardInset] = useState(0);
 
   useEffect(() => {
@@ -102,6 +114,7 @@ export default function RecordScreen() {
           emoji: record.emoji ?? '✏️',
         });
         setCustomActivity(isCustom ? record.activityLabel : '');
+        setCustomInputKind('other');
         setShowCustomInput(isCustom);
       } else {
         setSelectedActivity(null);
@@ -116,6 +129,16 @@ export default function RecordScreen() {
       active = false;
     };
   }, [db, intervalStart]);
+
+  useEffect(() => {
+    let active = true;
+    void getCustomActivities(db).then((savedActivities) => {
+      if (active) setCustomActivities(savedActivities);
+    });
+    return () => {
+      active = false;
+    };
+  }, [db]);
 
   const persist = async (
     activity: ActivityOption | null,
@@ -157,17 +180,92 @@ export default function RecordScreen() {
     setCustomActivity(
       previousRecord.activityKey.startsWith('custom:') ? previousRecord.activityLabel : '',
     );
+    setCustomInputKind('other');
     setShowCustomInput(previousRecord.activityKey.startsWith('custom:'));
   };
 
-  const selectCustom = () => {
+  const saveCustomChip = async () => {
     const label = customActivity.trim();
     if (!label) {
-      Alert.alert('활동을 적어 주세요', '지난 한 시간을 한마디로 남겨 볼까요?');
+      Alert.alert('활동 이름을 적어 주세요');
+      return;
+    }
+
+    const duplicate = customActivities.find(
+      (activity) =>
+        activity.key !== editingCustomKey &&
+        activity.label.toLowerCase() === label.toLowerCase(),
+    );
+    if (duplicate) {
+      setSelectedActivity(duplicate);
+      setSelectedSource('custom');
+      setShowCustomInput(false);
+      return;
+    }
+
+    if (!editingCustomKey && customActivities.length >= 24) {
+      Alert.alert('내 활동은 24개까지 만들 수 있어요');
+      return;
+    }
+
+    const activity: CustomActivity = {
+      key: editingCustomKey ?? `user:${Date.now().toString(36)}`,
+      label,
+      emoji: customEmoji,
+    };
+    const next = editingCustomKey
+      ? customActivities.map((item) => (item.key === editingCustomKey ? activity : item))
+      : [...customActivities, activity];
+
+    setSavingCustomActivity(true);
+    try {
+      await saveCustomActivities(db, next);
+      setCustomActivities(next);
+      setSelectedActivity(activity);
+      setSelectedSource('custom');
+      setShowCustomInput(false);
+      setEditingCustomKey(null);
+    } catch {
+      Alert.alert('활동 칩을 저장하지 못했어요');
+    } finally {
+      setSavingCustomActivity(false);
+    }
+  };
+
+  const selectOneOffActivity = () => {
+    const label = customActivity.trim();
+    if (!label) {
+      Alert.alert('활동을 적어 주세요');
       return;
     }
     setSelectedActivity({ key: `custom:${label}`, label, emoji: '✏️' });
     setSelectedSource('custom');
+  };
+
+  const openCustomCreator = (activity?: CustomActivity) => {
+    setCustomInputKind('chip');
+    setEditingCustomKey(activity?.key ?? null);
+    setCustomActivity(activity?.label ?? '');
+    setCustomEmoji(activity?.emoji ?? customEmojis[0]);
+    setShowCustomInput(true);
+    if (!activity) setSelectedActivity(null);
+  };
+
+  const manageCustomActivity = (activity: CustomActivity) => {
+    Alert.alert(activity.label, '이 활동 칩을 어떻게 할까요?', [
+      { text: '취소', style: 'cancel' },
+      { text: '수정', onPress: () => openCustomCreator(activity) },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: async () => {
+          const next = customActivities.filter((item) => item.key !== activity.key);
+          await saveCustomActivities(db, next);
+          setCustomActivities(next);
+          if (selectedActivity?.key === activity.key) setSelectedActivity(null);
+        },
+      },
+    ]);
   };
 
   const scrollToFocusedInput = useCallback(() => {
@@ -276,36 +374,110 @@ export default function RecordScreen() {
                 <Text style={styles.activityLabel}>{activity.label}</Text>
               </Pressable>
             ))}
+            {customActivities.map((activity) => (
+              <Pressable
+                accessibilityHint="길게 누르면 수정하거나 삭제할 수 있어요"
+                accessibilityState={{ selected: selectedActivity?.key === activity.key }}
+                accessibilityRole="button"
+                disabled={saving || loadingRecord}
+                key={activity.key}
+                onLongPress={() => manageCustomActivity(activity)}
+                onPress={() => {
+                  setSelectedActivity(activity);
+                  setSelectedSource('custom');
+                  setShowCustomInput(false);
+                }}
+                style={({ pressed }) => [
+                  styles.activity,
+                  selectedActivity?.key === activity.key && styles.activitySelected,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.activityEmoji}>{activity.emoji}</Text>
+                <Text style={styles.activityLabel}>{activity.label}</Text>
+              </Pressable>
+            ))}
             <Pressable
-              accessibilityState={{ selected: showCustomInput }}
+              accessibilityState={{
+                selected: showCustomInput && customInputKind === 'other',
+              }}
               accessibilityRole="button"
               disabled={saving || loadingRecord}
               onPress={() => {
+                setEditingCustomKey(null);
+                setCustomInputKind('other');
+                setCustomActivity('');
+                setCustomEmoji(customEmojis[0]);
                 setSelectedActivity(null);
                 setSelectedSource('custom');
                 setShowCustomInput(true);
               }}
               style={({ pressed }) => [
                 styles.activity,
-                showCustomInput && styles.activitySelected,
+                showCustomInput && customInputKind === 'other' && styles.activitySelected,
                 pressed && styles.pressed,
               ]}
             >
               <Text style={styles.activityEmoji}>✏️</Text>
               <Text style={styles.activityLabel}>기타</Text>
             </Pressable>
+            <Pressable
+              accessibilityState={{
+                selected: showCustomInput && customInputKind === 'chip',
+              }}
+              accessibilityRole="button"
+              disabled={saving || loadingRecord}
+              onPress={() => openCustomCreator()}
+              style={({ pressed }) => [
+                styles.activity,
+                showCustomInput && customInputKind === 'chip' && styles.activitySelected,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.activityEmoji}>＋</Text>
+              <Text style={styles.activityLabel}>내 활동</Text>
+            </Pressable>
           </View>
+
+          {customActivities.length > 0 ? (
+            <Text style={styles.customHint}>내 활동은 길게 눌러 수정·삭제할 수 있어요.</Text>
+          ) : null}
 
           {showCustomInput ? (
             <View style={styles.inputSection}>
-              <Text style={styles.inputLabel}>어떤 활동이었어요?</Text>
+              <Text style={styles.inputLabel}>
+                {customInputKind === 'other'
+                  ? '어떤 활동이었어요?'
+                  : editingCustomKey
+                    ? '활동 칩 수정'
+                    : '새 활동 칩'}
+              </Text>
+              {customInputKind === 'chip' ? (
+                <View style={styles.emojiPicker}>
+                  {customEmojis.map((emoji) => (
+                    <Pressable
+                      accessibilityLabel={`${emoji} 아이콘`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: customEmoji === emoji }}
+                      key={emoji}
+                      onPress={() => setCustomEmoji(emoji)}
+                      style={[
+                        styles.emojiOption,
+                        customEmoji === emoji && styles.emojiOptionSelected,
+                      ]}
+                    >
+                      <Text style={styles.emojiOptionText}>{emoji}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
               <View style={styles.customRow}>
                 <TextInput
                   autoFocus
                   maxLength={24}
                   onChangeText={setCustomActivity}
                   onFocus={() => revealInput(customInputRef.current)}
-                  placeholder="예: 산책, 회의, 낮잠"
+                  placeholder="활동 이름"
                   placeholderTextColor="#A69D94"
                   ref={customInputRef}
                   style={styles.customInput}
@@ -313,11 +485,21 @@ export default function RecordScreen() {
                 />
                 <Pressable
                   accessibilityRole="button"
-                  disabled={saving || loadingRecord}
-                  onPress={selectCustom}
+                  disabled={saving || loadingRecord || savingCustomActivity}
+                  onPress={() =>
+                    customInputKind === 'chip'
+                      ? void saveCustomChip()
+                      : selectOneOffActivity()
+                  }
                   style={({ pressed }) => [styles.customSave, pressed && styles.pressed]}
                 >
-                  <Text style={styles.customSaveText}>선택</Text>
+                  <Text style={styles.customSaveText}>
+                    {customInputKind === 'other'
+                      ? '선택'
+                      : editingCustomKey
+                        ? '수정'
+                        : '만들기'}
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -461,6 +643,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
+  customHint: {
+    marginTop: 8,
+    color: colors.muted,
+    fontSize: 10,
+  },
   pressed: {
     opacity: 0.65,
     transform: [{ scale: 0.99 }],
@@ -500,6 +687,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 9,
   },
+  emojiPicker: {
+    marginBottom: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  emojiOption: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+  },
+  emojiOptionSelected: {
+    borderColor: colors.coral,
+    backgroundColor: colors.coralSoft,
+  },
+  emojiOptionText: { fontSize: 20 },
   customInput: {
     height: 50,
     flex: 1,
