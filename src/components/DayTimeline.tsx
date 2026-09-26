@@ -40,6 +40,13 @@ export function DayTimeline({ date, records }: DayTimelineProps) {
             <View style={styles.rowContent}>
               <Text style={styles.time}>{formatHourRange(slot.start, slot.end)}</Text>
               <Pressable
+                accessibilityLabel={`${formatHourRange(slot.start, slot.end)}, ${
+                  isEmpty
+                    ? '아직 기록하지 않음'
+                    : isSkipped
+                      ? '건너뜀'
+                      : record.activityLabel
+                }`}
                 accessibilityHint="이 시간의 활동을 기록하거나 수정해"
                 accessibilityRole="button"
                 onPress={() =>

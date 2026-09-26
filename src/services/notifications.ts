@@ -2,6 +2,9 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 import type { ReminderPreferences } from '@/db/settings';
+import { getDailyReminderTimes } from '@/utils/reminders';
+
+export { getDailyReminderTimes } from '@/utils/reminders';
 
 export const REMINDER_CHANNEL_ID = 'activity-reminders';
 export const REMINDER_TYPE = 'hourly-activity-check-in';
@@ -56,20 +59,6 @@ export async function getReminderState() {
     permissionStatus: permission.status,
     scheduledCount: requests.length,
   };
-}
-
-export function getDailyReminderTimes(preferences: ReminderPreferences) {
-  const times: { hour: number; minute: number }[] = [];
-  const endMinutes = preferences.endHour * 60;
-
-  for (
-    let minutes = preferences.startHour * 60;
-    minutes <= endMinutes;
-    minutes += preferences.intervalMinutes
-  ) {
-    times.push({ hour: Math.floor(minutes / 60), minute: minutes % 60 });
-  }
-  return times;
 }
 
 export async function enableReminders(preferences: ReminderPreferences) {

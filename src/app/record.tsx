@@ -42,14 +42,19 @@ export default function RecordScreen() {
   const { start } = useLocalSearchParams<{ start?: string }>();
   const interval = useMemo(() => {
     const requestedStart = Number(start);
-    if (Number.isFinite(requestedStart) && requestedStart > 0) {
+    const latestInterval = getLastCompletedHour();
+    if (
+      Number.isFinite(requestedStart) &&
+      requestedStart > 0 &&
+      requestedStart <= latestInterval.start.getTime()
+    ) {
       const normalizedStart = startOfHour(new Date(requestedStart));
       return {
         start: normalizedStart,
         end: new Date(normalizedStart.getTime() + 60 * 60 * 1000),
       };
     }
-    return getLastCompletedHour();
+    return latestInterval;
   }, [start]);
   const intervalStart = interval.start.getTime();
   const [note, setNote] = useState('');

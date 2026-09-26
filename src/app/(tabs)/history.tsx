@@ -52,6 +52,7 @@ export default function HistoryScreen() {
               const skippedCount = group.records.length - recordedCount;
               return (
                 <Pressable
+                  accessibilityLabel={`${formatKoreanDate(group.date)}, ${recordedCount}개 장면`}
                   accessibilityRole="button"
                   key={group.key}
                   onPress={() => router.push({ pathname: '/day/[date]', params: { date: group.key } })}

@@ -116,7 +116,7 @@ export default function ShareScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topRow}>
           <View>
@@ -159,6 +159,9 @@ export default function ShareScreen() {
                 const included = !excludedIds.has(record.id);
                 return (
                   <Pressable
+                    accessibilityLabel={`${
+                      record.status === 'skipped' ? '쉬어간 시간' : record.activityLabel
+                    }, 공유 카드에 ${included ? '포함됨' : '제외됨'}`}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: included }}
                     key={record.id}
