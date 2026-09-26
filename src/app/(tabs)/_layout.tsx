@@ -32,6 +32,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <TabIcon symbol="≡" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: '설정',
+          tabBarIcon: ({ color }) => <TabIcon symbol="◌" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

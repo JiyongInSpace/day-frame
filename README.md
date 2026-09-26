@@ -8,6 +8,7 @@
 - React Native + TypeScript
 - Expo Router
 - Expo SQLite
+- Expo Notifications
 
 ## 실행
 
@@ -22,5 +23,6 @@ npm run android
 2. `지난 한 시간 기록하기`에서 활동을 빠르게 고르거나 직접 입력한다.
 3. 기록은 기기 내부 SQLite에 저장된다.
 4. 하단 `일정표`에서 기록, 건너뛰기, 미기록 구간을 구분해 확인한다.
+5. `설정`에서 매시간 활동 기록 알림을 켜고 1분 테스트 알림을 예약한다.
 
 제품 결정과 임시 기본값은 [`docs/product-decisions.md`](docs/product-decisions.md)에 기록합니다.
