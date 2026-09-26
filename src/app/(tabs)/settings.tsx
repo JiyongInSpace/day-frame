@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { PermissionStatus } from 'expo-notifications';
+import { useSQLiteContext } from 'expo-sqlite';
 import {
   Alert,
   Linking,
@@ -14,11 +15,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
+  DEFAULT_REMINDER_PREFERENCES,
+  getReminderPreferences,
+  saveReminderPreferences,
+  type ReminderPreferences,
+} from '@/db/settings';
+import {
   disableHourlyReminders,
-  enableHourlyReminders,
+  enableReminders,
+  getDailyReminderTimes,
   getReminderState,
-  REMINDER_END_HOUR,
-  REMINDER_START_HOUR,
   scheduleTestReminder,
 } from '@/services/notifications';
 import { colors } from '@/theme/colors';
@@ -31,13 +37,70 @@ const initialState: ReminderState = {
   scheduledCount: 0,
 };
 
+function formatHour(hour: number) {
+  if (hour === 0) return '오전 12시';
+  if (hour < 12) return `오전 ${hour}시`;
+  if (hour === 12) return '오후 12시';
+  return `오후 ${hour - 12}시`;
+}
+
+function Stepper({
+  label,
+  value,
+  minimum,
+  maximum,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  minimum: number;
+  maximum: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <View style={styles.stepperRow}>
+      <Text style={styles.stepperLabel}>{label}</Text>
+      <View style={styles.stepperControl}>
+        <Pressable
+          accessibilityLabel={`${label} 한 시간 줄이기`}
+          accessibilityRole="button"
+          disabled={value <= minimum}
+          onPress={() => onChange(value - 1)}
+          style={({ pressed }) => [styles.stepperButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.stepperSymbol}>−</Text>
+        </Pressable>
+        <Text style={styles.stepperValue}>{formatHour(value)}</Text>
+        <Pressable
+          accessibilityLabel={`${label} 한 시간 늘리기`}
+          accessibilityRole="button"
+          disabled={value >= maximum}
+          onPress={() => onChange(value + 1)}
+          style={({ pressed }) => [styles.stepperButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.stepperSymbol}>＋</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 export default function SettingsScreen() {
+  const db = useSQLiteContext();
   const [reminderState, setReminderState] = useState<ReminderState>(initialState);
+  const [preferences, setPreferences] = useState<ReminderPreferences>(
+    DEFAULT_REMINDER_PREFERENCES,
+  );
   const [updating, setUpdating] = useState(false);
 
   const refresh = useCallback(async () => {
-    setReminderState(await getReminderState());
-  }, []);
+    const [state, savedPreferences] = await Promise.all([
+      getReminderState(),
+      getReminderPreferences(db),
+    ]);
+    setReminderState(state);
+    setPreferences(savedPreferences);
+  }, [db]);
 
   useFocusEffect(
     useCallback(() => {
@@ -46,21 +109,20 @@ export default function SettingsScreen() {
   );
 
   const toggleReminders = async (enabled: boolean) => {
-    if (updating) {
-      return;
-    }
+    if (updating) return;
 
     setUpdating(true);
     try {
+      await saveReminderPreferences(db, preferences);
       const nextState = enabled
-        ? await enableHourlyReminders()
+        ? await enableReminders(preferences)
         : await disableHourlyReminders();
       setReminderState(nextState);
 
       if (enabled && !nextState.enabled) {
         Alert.alert(
           '알림이 꺼져 있어',
-          '기기 설정에서 DayFrame 알림을 허용하면 매시간 기록을 떠올려 줄게.',
+          '기기 설정에서 DayFrame 알림을 허용하면 기록을 떠올려 줄게.',
           [
             { text: '나중에', style: 'cancel' },
             { text: '설정 열기', onPress: () => void Linking.openSettings() },
@@ -74,14 +136,30 @@ export default function SettingsScreen() {
     }
   };
 
-  const testReminder = async () => {
-    const scheduled = await scheduleTestReminder();
-    if (scheduled) {
-      Alert.alert('테스트 알림을 예약했어', '약 1분 뒤에 알림이 도착할 거야.');
-    } else {
-      Alert.alert('먼저 알림을 켜 줘', '위의 활동 기록 알림을 켠 뒤 테스트해 줘.');
+  const savePreferences = async () => {
+    setUpdating(true);
+    try {
+      await saveReminderPreferences(db, preferences);
+      if (reminderState.enabled) {
+        setReminderState(await enableReminders(preferences));
+      }
+      Alert.alert('알림 시간을 저장했어');
+    } catch {
+      Alert.alert('설정을 저장하지 못했어', '잠시 후 다시 시도해 줘.');
+    } finally {
+      setUpdating(false);
     }
   };
+
+  const testReminder = async () => {
+    const scheduled = await scheduleTestReminder();
+    Alert.alert(
+      scheduled ? '테스트 알림을 예약했어' : '먼저 알림을 켜 줘',
+      scheduled ? '약 1분 뒤에 알림이 도착할 거야.' : '활동 기록 알림을 켠 뒤 테스트해 줘.',
+    );
+  };
+
+  const reminderCount = getDailyReminderTimes(preferences).length;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -100,7 +178,7 @@ export default function SettingsScreen() {
             <View style={styles.cardCopy}>
               <Text style={styles.cardTitle}>활동 기록 알림</Text>
               <Text style={styles.cardSubtitle}>
-                오전 {REMINDER_START_HOUR}시–오후 {REMINDER_END_HOUR - 12}시 · 매시 정각
+                {formatHour(preferences.startHour)}–{formatHour(preferences.endHour)}
               </Text>
             </View>
             <Switch
@@ -114,22 +192,67 @@ export default function SettingsScreen() {
 
           <View style={styles.rule} />
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>알림 횟수</Text>
-            <Text style={styles.infoValue}>하루 {REMINDER_END_HOUR - REMINDER_START_HOUR + 1}번</Text>
+          <Stepper
+            label="시작"
+            maximum={preferences.endHour - 1}
+            minimum={5}
+            onChange={(startHour) => setPreferences((current) => ({ ...current, startHour }))}
+            value={preferences.startHour}
+          />
+          <Stepper
+            label="종료"
+            maximum={23}
+            minimum={preferences.startHour + 1}
+            onChange={(endHour) => setPreferences((current) => ({ ...current, endHour }))}
+            value={preferences.endHour}
+          />
+
+          <Text style={styles.intervalLabel}>알림 간격</Text>
+          <View style={styles.intervalRow}>
+            {([30, 60, 120] as const).map((minutes) => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: preferences.intervalMinutes === minutes }}
+                key={minutes}
+                onPress={() =>
+                  setPreferences((current) => ({ ...current, intervalMinutes: minutes }))
+                }
+                style={[
+                  styles.intervalButton,
+                  preferences.intervalMinutes === minutes && styles.intervalButtonSelected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.intervalText,
+                    preferences.intervalMinutes === minutes && styles.intervalTextSelected,
+                  ]}
+                >
+                  {minutes < 60 ? '30분' : `${minutes / 60}시간`}
+                </Text>
+              </Pressable>
+            ))}
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>현재 상태</Text>
-            <Text style={[styles.infoValue, reminderState.enabled && styles.enabledText]}>
-              {reminderState.enabled ? '켜짐' : '꺼짐'}
-            </Text>
+
+          <View style={styles.summaryRow}>
+            <Text style={styles.infoLabel}>하루 알림</Text>
+            <Text style={styles.infoValue}>{reminderCount}번</Text>
           </View>
+
+          <Pressable
+            accessibilityRole="button"
+            disabled={updating}
+            onPress={() => void savePreferences()}
+            style={({ pressed }) => [styles.saveButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.saveButtonText}>알림 시간 저장</Text>
+          </Pressable>
         </View>
 
         <View style={styles.noteCard}>
           <Text style={styles.noteSymbol}>i</Text>
           <Text style={styles.noteText}>
-            Android의 절전 설정에 따라 알림이 정각보다 조금 늦을 수 있어. DayFrame은 불필요한 정확 알람 권한을 요구하지 않아.
+            Android의 절전 설정에 따라 알림이 조금 늦을 수 있어. DayFrame은 불필요한 정확 알람 권한을 요구하지 않아.
           </Text>
         </View>
 
@@ -140,29 +263,15 @@ export default function SettingsScreen() {
         >
           <Text style={styles.testButtonText}>1분 뒤 테스트 알림 받기</Text>
         </Pressable>
-
-        <Text style={styles.footer}>알림 시간대와 간격 조절은 다음 단계에서 추가할게.</Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-    paddingBottom: 40,
-  },
-  eyebrow: {
-    color: colors.coral,
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 1.2,
-  },
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  content: { paddingHorizontal: 22, paddingTop: 22, paddingBottom: 40 },
+  eyebrow: { color: colors.coral, fontSize: 12, fontWeight: '900', letterSpacing: 1.2 },
   title: {
     marginTop: 8,
     color: colors.ink,
@@ -171,12 +280,7 @@ const styles = StyleSheet.create({
     lineHeight: 41,
     letterSpacing: -1,
   },
-  description: {
-    marginTop: 12,
-    color: colors.muted,
-    fontSize: 14,
-    lineHeight: 22,
-  },
+  description: { marginTop: 12, color: colors.muted, fontSize: 14, lineHeight: 22 },
   reminderCard: {
     marginTop: 30,
     padding: 20,
@@ -185,10 +289,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: colors.surface,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center' },
   bellCircle: {
     width: 46,
     height: 46,
@@ -197,47 +298,59 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     backgroundColor: colors.coralSoft,
   },
-  bell: {
-    color: colors.coral,
-    fontSize: 25,
-    fontWeight: '900',
-  },
-  cardCopy: {
-    flex: 1,
-    marginLeft: 13,
-  },
-  cardTitle: {
-    color: colors.ink,
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  cardSubtitle: {
-    marginTop: 4,
-    color: colors.muted,
-    fontSize: 12,
-  },
-  rule: {
-    height: 1,
-    marginVertical: 18,
-    backgroundColor: colors.line,
-  },
-  infoRow: {
-    paddingVertical: 5,
+  bell: { color: colors.coral, fontSize: 25, fontWeight: '900' },
+  cardCopy: { flex: 1, marginLeft: 13 },
+  cardTitle: { color: colors.ink, fontSize: 16, fontWeight: '900' },
+  cardSubtitle: { marginTop: 4, color: colors.muted, fontSize: 12 },
+  rule: { height: 1, marginVertical: 18, backgroundColor: colors.line },
+  stepperRow: {
+    paddingVertical: 8,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
   },
-  infoLabel: {
-    color: colors.muted,
-    fontSize: 13,
+  stepperLabel: { color: colors.muted, fontSize: 13, fontWeight: '700' },
+  stepperControl: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  stepperButton: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: '#EEE8DE',
   },
-  infoValue: {
+  stepperSymbol: { color: colors.ink, fontSize: 18, fontWeight: '800' },
+  stepperValue: {
+    width: 72,
     color: colors.ink,
     fontSize: 13,
     fontWeight: '800',
+    textAlign: 'center',
   },
-  enabledText: {
-    color: colors.coral,
+  intervalLabel: { marginTop: 17, color: colors.muted, fontSize: 13, fontWeight: '700' },
+  intervalRow: { marginTop: 10, flexDirection: 'row', gap: 8 },
+  intervalButton: {
+    flex: 1,
+    paddingVertical: 11,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 13,
   },
+  intervalButtonSelected: { borderColor: colors.coral, backgroundColor: colors.coralSoft },
+  intervalText: { color: colors.muted, fontSize: 12, fontWeight: '800' },
+  intervalTextSelected: { color: colors.coral },
+  summaryRow: { marginTop: 18, flexDirection: 'row', justifyContent: 'space-between' },
+  infoLabel: { color: colors.muted, fontSize: 13 },
+  infoValue: { color: colors.ink, fontSize: 13, fontWeight: '800' },
+  saveButton: {
+    marginTop: 16,
+    paddingVertical: 13,
+    alignItems: 'center',
+    borderRadius: 14,
+    backgroundColor: colors.night,
+  },
+  saveButtonText: { color: colors.white, fontSize: 13, fontWeight: '900' },
   noteCard: {
     marginTop: 14,
     padding: 16,
@@ -245,18 +358,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#EEE8DE',
   },
-  noteSymbol: {
-    width: 24,
-    color: colors.coral,
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  noteText: {
-    flex: 1,
-    color: colors.muted,
-    fontSize: 12,
-    lineHeight: 19,
-  },
+  noteSymbol: { width: 24, color: colors.coral, fontSize: 14, fontWeight: '900' },
+  noteText: { flex: 1, color: colors.muted, fontSize: 12, lineHeight: 19 },
   testButton: {
     marginTop: 22,
     paddingVertical: 16,
@@ -265,18 +368,6 @@ const styles = StyleSheet.create({
     borderColor: colors.ink,
     borderRadius: 18,
   },
-  testButtonText: {
-    color: colors.ink,
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  pressed: {
-    opacity: 0.65,
-  },
-  footer: {
-    marginTop: 16,
-    color: colors.muted,
-    fontSize: 12,
-    textAlign: 'center',
-  },
+  testButtonText: { color: colors.ink, fontSize: 14, fontWeight: '900' },
+  pressed: { opacity: 0.65 },
 });

@@ -33,7 +33,7 @@ type ActivityRecordRow = {
 
 export type SaveRecordInput = Omit<ActivityRecord, 'id' | 'respondedAt' | 'updatedAt'>;
 
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 export async function migrateDatabase(db: SQLiteDatabase) {
   const result = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -71,6 +71,16 @@ export async function migrateDatabase(db: SQLiteDatabase) {
       UPDATE activity_records SET updated_at = responded_at WHERE updated_at IS NULL;
     `);
     currentVersion = 2;
+  }
+
+  if (currentVersion < 3) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      );
+    `);
+    currentVersion = 3;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

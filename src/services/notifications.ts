@@ -1,10 +1,10 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
+import type { ReminderPreferences } from '@/db/settings';
+
 export const REMINDER_CHANNEL_ID = 'activity-reminders';
 export const REMINDER_TYPE = 'hourly-activity-check-in';
-export const REMINDER_START_HOUR = 9;
-export const REMINDER_END_HOUR = 22;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -58,7 +58,21 @@ export async function getReminderState() {
   };
 }
 
-export async function enableHourlyReminders() {
+export function getDailyReminderTimes(preferences: ReminderPreferences) {
+  const times: { hour: number; minute: number }[] = [];
+  const endMinutes = preferences.endHour * 60;
+
+  for (
+    let minutes = preferences.startHour * 60;
+    minutes <= endMinutes;
+    minutes += preferences.intervalMinutes
+  ) {
+    times.push({ hour: Math.floor(minutes / 60), minute: minutes % 60 });
+  }
+  return times;
+}
+
+export async function enableReminders(preferences: ReminderPreferences) {
   await ensureAndroidChannel();
 
   const currentPermission = await Notifications.getPermissionsAsync();
@@ -72,7 +86,7 @@ export async function enableHourlyReminders() {
 
   await cancelReminderRequests();
 
-  for (let hour = REMINDER_START_HOUR; hour <= REMINDER_END_HOUR; hour += 1) {
+  for (const time of getDailyReminderTimes(preferences)) {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: '지난 한 시간, 뭐 했어?',
@@ -81,8 +95,8 @@ export async function enableHourlyReminders() {
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour,
-        minute: 0,
+        hour: time.hour,
+        minute: time.minute,
         channelId: REMINDER_CHANNEL_ID,
       },
     });
