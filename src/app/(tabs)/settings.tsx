@@ -165,10 +165,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.eyebrow}>설정</Text>
-        <Text style={styles.title}>부담 없이,{`\n`}잊지 않을 만큼만 알려드려요</Text>
-        <Text style={styles.description}>
-          알림에는 활동이나 메모가 표시되지 않아요. 잠금 화면에서도 기록은 드러나지 않아요.
-        </Text>
+        <Text style={styles.title}>알림</Text>
 
         <View style={styles.reminderCard}>
           <View style={styles.cardHeader}>
@@ -249,13 +246,6 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.noteCard}>
-          <Text style={styles.noteSymbol}>i</Text>
-          <Text style={styles.noteText}>
-            Android의 절전 설정에 따라 알림이 조금 늦을 수 있어요. 하루프레임은 불필요한 정확 알람 권한을 요구하지 않아요.
-          </Text>
-        </View>
-
         <Pressable
           accessibilityRole="button"
           onPress={() => void testReminder()}
@@ -280,9 +270,8 @@ const styles = StyleSheet.create({
     lineHeight: 41,
     letterSpacing: -1,
   },
-  description: { marginTop: 12, color: colors.muted, fontSize: 14, lineHeight: 22 },
   reminderCard: {
-    marginTop: 30,
+    marginTop: 20,
     padding: 20,
     borderWidth: 1,
     borderColor: colors.line,
@@ -351,15 +340,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.night,
   },
   saveButtonText: { color: colors.white, fontSize: 13, fontWeight: '900' },
-  noteCard: {
-    marginTop: 14,
-    padding: 16,
-    flexDirection: 'row',
-    borderRadius: 18,
-    backgroundColor: '#EEE8DE',
-  },
-  noteSymbol: { width: 24, color: colors.coral, fontSize: 14, fontWeight: '900' },
-  noteText: { flex: 1, color: colors.muted, fontSize: 12, lineHeight: 19 },
   testButton: {
     marginTop: 22,
     paddingVertical: 16,
