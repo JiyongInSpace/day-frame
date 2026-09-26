@@ -44,7 +44,7 @@ export function ShareCard({
       <View style={styles.glowTwo} />
 
       <View style={styles.headerRow}>
-        <Text style={styles.brand}>DAYFRAME</Text>
+        <Text style={styles.brand}>하루프레임</Text>
         <Text style={styles.sparkle}>✦</Text>
       </View>
 
@@ -104,7 +104,7 @@ export function ShareCard({
         </View>
         <View style={styles.signature}>
           <Text style={styles.signatureMark}>◇</Text>
-          <Text style={styles.signatureText}>DAYFRAME</Text>
+          <Text style={styles.signatureText}>하루프레임</Text>
         </View>
       </View>
     </View>

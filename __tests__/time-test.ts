@@ -6,8 +6,8 @@ import {
   parseDayKey,
 } from '@/utils/time';
 
-describe('DayFrame day boundaries', () => {
-  test('03:59 belongs to the previous DayFrame day', () => {
+describe('하루프레임 day boundaries', () => {
+  test('03:59 belongs to the previous 하루프레임 day', () => {
     const beforeBoundary = new Date(2026, 8, 26, 3, 59);
     const bounds = getDayBounds(beforeBoundary);
 
@@ -16,7 +16,7 @@ describe('DayFrame day boundaries', () => {
     expect(getDayKey(beforeBoundary)).toBe('2026-09-25');
   });
 
-  test('04:00 starts a new DayFrame day', () => {
+  test('04:00 starts a new 하루프레임 day', () => {
     const boundary = new Date(2026, 8, 26, 4);
 
     expect(getDayBounds(boundary).start).toEqual(boundary);

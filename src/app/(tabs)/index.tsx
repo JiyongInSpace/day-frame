@@ -17,7 +17,7 @@ export default function TodayScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.brand}>DayFrame</Text>
+            <Text style={styles.brand}>하루프레임</Text>
             <Text style={styles.subtitle}>오늘은 어떻게 흘러가고 있어요?</Text>
           </View>
           <View style={styles.avatar}>

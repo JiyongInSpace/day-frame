@@ -87,7 +87,7 @@ export default function ShareScreen() {
       }
       const uri = await captureCard();
       await Asset.create(uri);
-      Alert.alert('저장했어요', 'DayFrame 카드를 사진 앱에 저장했어요.');
+      Alert.alert('저장했어요', '하루프레임 카드를 사진 앱에 저장했어요.');
     } catch {
       Alert.alert('저장하지 못했어요', '잠시 뒤 다시 시도해 주세요.');
     } finally {
@@ -105,7 +105,7 @@ export default function ShareScreen() {
       }
       const uri = await captureCard();
       await Sharing.shareAsync(uri, {
-        dialogTitle: 'DayFrame 카드 공유',
+        dialogTitle: '하루프레임 카드 공유',
         mimeType: 'image/png',
       });
     } catch {

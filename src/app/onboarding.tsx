@@ -72,7 +72,7 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.brand}>DayFrame</Text>
+        <Text style={styles.brand}>하루프레임</Text>
         <Text style={styles.pageCount}>{page + 1} / {pages.length}</Text>
       </View>
 
@@ -123,7 +123,7 @@ export default function OnboardingScreen() {
           style={({ pressed }) => [styles.nextButton, pressed && styles.pressed]}
         >
           <Text style={styles.nextButtonText}>
-            {isLastPage ? 'DayFrame 시작하기' : '다음'}
+            {isLastPage ? '하루프레임 시작하기' : '다음'}
           </Text>
         </Pressable>
       </View>

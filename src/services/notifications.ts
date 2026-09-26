@@ -109,7 +109,7 @@ export async function scheduleTestReminder() {
 
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: 'DayFrame 알림 테스트 ✦',
+      title: '하루프레임 알림 테스트 ✦',
       body: '알림이 잘 도착했어요. 지난 한 시간을 기록해 볼까요?',
       data: { type: 'test-reminder', url: '/record' },
     },

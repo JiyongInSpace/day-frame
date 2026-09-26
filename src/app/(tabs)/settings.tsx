@@ -122,7 +122,7 @@ export default function SettingsScreen() {
       if (enabled && !nextState.enabled) {
         Alert.alert(
           '알림이 꺼져 있어요',
-          '기기 설정에서 DayFrame 알림을 허용하면 기록을 떠올려 드릴게요.',
+          '기기 설정에서 하루프레임 알림을 허용하면 기록을 떠올려 드릴게요.',
           [
             { text: '나중에', style: 'cancel' },
             { text: '설정 열기', onPress: () => void Linking.openSettings() },
@@ -252,7 +252,7 @@ export default function SettingsScreen() {
         <View style={styles.noteCard}>
           <Text style={styles.noteSymbol}>i</Text>
           <Text style={styles.noteText}>
-            Android의 절전 설정에 따라 알림이 조금 늦을 수 있어요. DayFrame은 불필요한 정확 알람 권한을 요구하지 않아요.
+            Android의 절전 설정에 따라 알림이 조금 늦을 수 있어요. 하루프레임은 불필요한 정확 알람 권한을 요구하지 않아요.
           </Text>
         </View>
 

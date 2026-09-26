@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "DayFrame",
+    "name": "하루프레임",
     "slug": "day-frame",
     "scheme": "dayframe",
     "version": "1.0.0",
@@ -14,9 +14,8 @@
       "package": "com.jiyonginspace.dayframe",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F6F1E8",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
@@ -39,8 +38,8 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "DayFrame 카드 저장을 위해 사진 접근을 허용해 주세요.",
-          "savePhotosPermission": "DayFrame 카드를 사진 앱에 저장하도록 허용해 주세요.",
+          "photosPermission": "하루프레임 카드 저장을 위해 사진 접근을 허용해 주세요.",
+          "savePhotosPermission": "하루프레임 카드를 사진 앱에 저장하도록 허용해 주세요.",
           "granularPermissions": ["photo"]
         }
       ]
