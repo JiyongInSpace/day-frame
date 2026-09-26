@@ -30,10 +30,31 @@ export function getDayBounds(now = new Date()): TimeRange {
   return { start, end };
 }
 
-export function getHourlySlots(now = new Date()): TimeRange[] {
-  const { start, end: dayEnd } = getDayBounds(now);
-  const completedUntil = startOfHour(now);
-  const end = new Date(Math.min(dayEnd.getTime(), completedUntil.getTime()));
+export function getDayKey(date = new Date()) {
+  const { start } = getDayBounds(date);
+  const year = start.getFullYear();
+  const month = String(start.getMonth() + 1).padStart(2, '0');
+  const day = String(start.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function parseDayKey(dayKey: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayKey);
+  if (!match) {
+    return null;
+  }
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12);
+  return Number.isNaN(date.getTime()) || getDayKey(date) !== dayKey ? null : date;
+}
+
+export function getHourlySlots(date = new Date(), clock = new Date()): TimeRange[] {
+  const { start, end: dayEnd } = getDayBounds(date);
+  const completedUntil = startOfHour(clock);
+  const endTime = Math.max(
+    start.getTime(),
+    Math.min(dayEnd.getTime(), completedUntil.getTime()),
+  );
+  const end = new Date(endTime);
   const slots: TimeRange[] = [];
 
   for (

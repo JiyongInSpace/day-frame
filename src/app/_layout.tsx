@@ -55,6 +55,7 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen name="share" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack.Screen name="day/[date]" options={{ headerShown: false }} />
       </Stack>
     </SQLiteProvider>
   );

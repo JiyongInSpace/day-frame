@@ -33,6 +33,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="history"
+        options={{
+          title: '기록',
+          tabBarIcon: ({ color }) => <TabIcon symbol="▦" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: '설정',

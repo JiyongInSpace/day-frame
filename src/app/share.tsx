@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Asset, requestPermissionsAsync } from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import {
@@ -17,6 +17,7 @@ import { captureRef } from 'react-native-view-shot';
 import { ShareCard } from '@/components/ShareCard';
 import { useDayRecords } from '@/hooks/useDayRecords';
 import { colors } from '@/theme/colors';
+import { parseDayKey } from '@/utils/time';
 
 function Toggle({
   label,
@@ -40,7 +41,9 @@ function Toggle({
 }
 
 export default function ShareScreen() {
-  const { records, loading } = useDayRecords();
+  const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
+  const selectedDate = parseDayKey(typeof dateParam === 'string' ? dateParam : '') ?? new Date();
+  const { records, loading } = useDayRecords(selectedDate);
   const cardRef = useRef<View>(null);
   const [showTimes, setShowTimes] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
@@ -131,7 +134,12 @@ export default function ShareScreen() {
           </View>
         ) : (
           <View ref={cardRef} collapsable={false} style={styles.cardFrame}>
-            <ShareCard records={visibleRecords} showNotes={showNotes} showTimes={showTimes} />
+            <ShareCard
+              date={selectedDate}
+              records={visibleRecords}
+              showNotes={showNotes}
+              showTimes={showTimes}
+            />
           </View>
         )}
 

@@ -117,6 +117,13 @@ export async function listRecords(
   return rows.map(mapRecord);
 }
 
+export async function listAllRecords(db: SQLiteDatabase) {
+  const rows = await db.getAllAsync<ActivityRecordRow>(
+    'SELECT * FROM activity_records ORDER BY interval_start DESC',
+  );
+  return rows.map(mapRecord);
+}
+
 export async function getLatestRecordedActivity(db: SQLiteDatabase) {
   const row = await db.getFirstAsync<ActivityRecordRow>(
     `SELECT * FROM activity_records
