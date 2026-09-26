@@ -1,4 +1,12 @@
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useDayRecords } from '@/hooks/useDayRecords';
@@ -17,6 +25,7 @@ export default function TimelineScreen() {
         <Text style={styles.eyebrow}>오늘의 일정표</Text>
         <Text style={styles.title}>시간의 결을 따라가 봐</Text>
         <Text style={styles.date}>{formatKoreanDate(now)}</Text>
+        <Text style={styles.guide}>비어 있거나 고치고 싶은 시간을 눌러 줘.</Text>
 
         {loading ? (
           <ActivityIndicator style={styles.loader} color={colors.coral} />
@@ -47,7 +56,21 @@ export default function TimelineScreen() {
                   </View>
                   <View style={styles.rowContent}>
                     <Text style={styles.time}>{formatHourRange(slot.start, slot.end)}</Text>
-                    <View style={[styles.entry, isEmpty && styles.entryEmpty]}>
+                    <Pressable
+                      accessibilityHint="이 시간의 활동을 기록하거나 수정해"
+                      accessibilityRole="button"
+                      onPress={() =>
+                        router.push({
+                          pathname: '/record',
+                          params: { start: slot.start.getTime().toString() },
+                        })
+                      }
+                      style={({ pressed }) => [
+                        styles.entry,
+                        isEmpty && styles.entryEmpty,
+                        pressed && styles.entryPressed,
+                      ]}
+                    >
                       <Text style={styles.entryEmoji}>
                         {isEmpty ? '·' : isSkipped ? '—' : record.emoji}
                       </Text>
@@ -65,7 +88,8 @@ export default function TimelineScreen() {
                           </Text>
                         ) : null}
                       </View>
-                    </View>
+                      <Text style={styles.chevron}>›</Text>
+                    </Pressable>
                   </View>
                 </View>
               );
@@ -104,6 +128,11 @@ const styles = StyleSheet.create({
     marginTop: 7,
     color: colors.muted,
     fontSize: 14,
+  },
+  guide: {
+    marginTop: 13,
+    color: colors.muted,
+    fontSize: 12,
   },
   loader: {
     marginTop: 80,
@@ -186,6 +215,9 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     backgroundColor: 'transparent',
   },
+  entryPressed: {
+    opacity: 0.62,
+  },
   entryEmoji: {
     width: 34,
     fontSize: 20,
@@ -207,5 +239,11 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     lineHeight: 17,
+  },
+  chevron: {
+    marginLeft: 8,
+    color: colors.muted,
+    fontSize: 25,
+    fontWeight: '300',
   },
 });

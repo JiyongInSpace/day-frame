@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
   Alert,
@@ -15,12 +15,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
+  deleteRecord,
   getLatestRecordedActivity,
+  getRecordByIntervalStart,
   saveRecord,
   type RecordSource,
 } from '@/db/records';
 import { colors } from '@/theme/colors';
-import { formatHourRange, getLastCompletedHour } from '@/utils/time';
+import { formatHourRange, getLastCompletedHour, startOfHour } from '@/utils/time';
 
 type ActivityOption = { key: string; label: string; emoji: string };
 
@@ -37,12 +39,60 @@ const activities: ActivityOption[] = [
 
 export default function RecordScreen() {
   const db = useSQLiteContext();
-  const interval = useMemo(() => getLastCompletedHour(), []);
+  const { start } = useLocalSearchParams<{ start?: string }>();
+  const interval = useMemo(() => {
+    const requestedStart = Number(start);
+    if (Number.isFinite(requestedStart) && requestedStart > 0) {
+      const normalizedStart = startOfHour(new Date(requestedStart));
+      return {
+        start: normalizedStart,
+        end: new Date(normalizedStart.getTime() + 60 * 60 * 1000),
+      };
+    }
+    return getLastCompletedHour();
+  }, [start]);
+  const intervalStart = interval.start.getTime();
   const [note, setNote] = useState('');
   const [customActivity, setCustomActivity] = useState('');
   const [selectedActivity, setSelectedActivity] = useState<ActivityOption | null>(null);
   const [selectedSource, setSelectedSource] = useState<RecordSource>('quick');
+  const [existingRecordId, setExistingRecordId] = useState<number | null>(null);
+  const [loadingRecord, setLoadingRecord] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadExistingRecord() {
+      setLoadingRecord(true);
+      const record = await getRecordByIntervalStart(db, intervalStart);
+      if (!active) {
+        return;
+      }
+
+      setExistingRecordId(record?.id ?? null);
+      setNote(record?.note ?? '');
+      setSelectedSource(record?.source ?? 'quick');
+
+      if (record?.status === 'recorded' && record.activityKey && record.activityLabel) {
+        setSelectedActivity({
+          key: record.activityKey,
+          label: record.activityLabel,
+          emoji: record.emoji ?? '✏️',
+        });
+        setCustomActivity(record.activityKey.startsWith('custom:') ? record.activityLabel : '');
+      } else {
+        setSelectedActivity(null);
+        setCustomActivity('');
+      }
+      setLoadingRecord(false);
+    }
+
+    void loadExistingRecord();
+    return () => {
+      active = false;
+    };
+  }, [db, intervalStart]);
 
   const persist = async (
     activity: ActivityOption | null,
@@ -55,7 +105,7 @@ export default function RecordScreen() {
     setSaving(true);
     try {
       await saveRecord(db, {
-        intervalStart: interval.start.getTime(),
+        intervalStart,
         intervalEnd: interval.end.getTime(),
         activityKey: activity?.key ?? null,
         activityLabel: activity?.label ?? null,
@@ -95,6 +145,20 @@ export default function RecordScreen() {
     setSelectedSource('custom');
   };
 
+  const removeRecord = () => {
+    Alert.alert('이 기록을 삭제할까?', '삭제하면 이 시간은 다시 미기록으로 표시돼.', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteRecord(db, intervalStart);
+          router.back();
+        },
+      },
+    ]);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <KeyboardAvoidingView
@@ -107,17 +171,19 @@ export default function RecordScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.time}>{formatHourRange(interval.start, interval.end)}</Text>
-          <Text style={styles.title}>지난 한 시간,{`\n`}주로 뭐 했어?</Text>
+          <Text style={styles.title}>
+            {existingRecordId ? '이 시간의 기록을\n고쳐볼까?' : '지난 한 시간,\n주로 뭐 했어?'}
+          </Text>
           <Text style={styles.description}>
             정확하지 않아도 괜찮아. 가장 오래 한 활동 하나만 골라 줘.
           </Text>
 
-          <View style={styles.activityGrid}>
+          <View pointerEvents={loadingRecord ? 'none' : 'auto'} style={styles.activityGrid}>
             {activities.map((activity) => (
               <Pressable
                 accessibilityState={{ selected: selectedActivity?.key === activity.key }}
                 accessibilityRole="button"
-                disabled={saving}
+                disabled={saving || loadingRecord}
                 key={activity.key}
                 onPress={() => {
                   setSelectedActivity(activity);
@@ -137,7 +203,7 @@ export default function RecordScreen() {
 
           <Pressable
             accessibilityRole="button"
-            disabled={saving}
+            disabled={saving || loadingRecord}
             onPress={() => void continuePrevious()}
             style={({ pressed }) => [styles.continueButton, pressed && styles.pressed]}
           >
@@ -158,7 +224,7 @@ export default function RecordScreen() {
               />
               <Pressable
                 accessibilityRole="button"
-                disabled={saving}
+                disabled={saving || loadingRecord}
                 onPress={selectCustom}
                 style={({ pressed }) => [styles.customSave, pressed && styles.pressed]}
               >
@@ -183,7 +249,7 @@ export default function RecordScreen() {
 
           <Pressable
             accessibilityRole="button"
-            disabled={saving || !selectedActivity}
+            disabled={saving || loadingRecord || !selectedActivity}
             onPress={() => void persist(selectedActivity, selectedSource)}
             style={({ pressed }) => [
               styles.saveButton,
@@ -200,12 +266,23 @@ export default function RecordScreen() {
 
           <Pressable
             accessibilityRole="button"
-            disabled={saving}
+            disabled={saving || loadingRecord}
             onPress={() => void persist(null, 'skip')}
             style={({ pressed }) => [styles.skipButton, pressed && styles.pressed]}
           >
             <Text style={styles.skipText}>이번 시간은 건너뛰기</Text>
           </Pressable>
+
+          {existingRecordId ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={saving}
+              onPress={removeRecord}
+              style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.deleteText}>이 시간의 기록 삭제</Text>
+            </Pressable>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -378,5 +455,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     textDecorationLine: 'underline',
+  },
+  deleteButton: {
+    marginTop: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  deleteText: {
+    color: '#B85C52',
+    fontSize: 13,
+    fontWeight: '800',
   },
 });
