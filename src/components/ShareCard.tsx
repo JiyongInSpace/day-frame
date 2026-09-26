@@ -3,8 +3,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { ActivityRecord } from '@/db/records';
 import { colors } from '@/theme/colors';
 import { countRecordedActivities, formatActivityCountTitle } from '@/utils/activity-summary';
-import { formatGroupDuration, groupConsecutiveRecords } from '@/utils/day-card';
-import { formatHourRange, formatKoreanDate, getHourlySlots } from '@/utils/time';
+import {
+  formatGroupDuration,
+  getActivityColor,
+  groupConsecutiveRecords,
+} from '@/utils/day-card';
+import { formatKoreanDate, getHourlySlots } from '@/utils/time';
 
 type ShareCardProps = {
   records: ActivityRecord[];
@@ -16,8 +20,8 @@ type ShareCardProps = {
 export function ShareCard({
   records,
   date = new Date(),
-  showNotes = false,
-  showTimes = false,
+  showNotes = true,
+  showTimes = true,
 }: ShareCardProps) {
   const recorded = records.filter((record) => record.status === 'recorded');
   const activityCount = countRecordedActivities(records);
@@ -25,7 +29,11 @@ export function ShareCard({
   const unansweredCount = Math.max(0, totalSlots - records.length);
   const groups = groupConsecutiveRecords(records);
   const sceneCount = groups.filter((group) => group.status === 'recorded').length;
-  const visible = groups.slice(-5);
+  const visible = groups.length <= 6
+    ? groups
+    : Array.from({ length: 6 }, (_, index) =>
+        groups[Math.round((index * (groups.length - 1)) / 5)],
+      );
   const hiddenCount = Math.max(0, groups.length - visible.length);
 
   return (
@@ -45,41 +53,61 @@ export function ShareCard({
           : '비어 있는 순간까지\n오늘의 모양이에요'}
       </Text>
 
-      <View style={styles.rule} />
-
-      <View style={styles.moments}>
+      <View style={styles.schedule}>
+        <View style={styles.scheduleHeader}>
+          <Text style={[styles.columnHeading, styles.timeColumn]}>시간</Text>
+          <Text style={[styles.columnHeading, styles.activityColumn]}>활동</Text>
+          <Text style={[styles.columnHeading, styles.detailColumn]}>기록</Text>
+        </View>
         {visible.length > 0 ? (
-          visible.map((group) => (
-            <View key={group.id} style={styles.momentRow}>
-              <Text style={styles.emoji}>{group.emoji ?? '—'}</Text>
-              <View style={styles.momentCopy}>
-                <View style={styles.labelRow}>
+          visible.map((group, index) => {
+            const activityColor = getActivityColor(group.records[0]) ?? '#77717D';
+            return (
+              <View
+                key={group.id}
+                style={[styles.scheduleRow, index > 0 && styles.scheduleRowBorder]}
+              >
+                <View style={[styles.rowAccent, { backgroundColor: activityColor }]} />
+                <View style={styles.timeColumn}>
+                  {showTimes ? (
+                    <>
+                      <Text numberOfLines={1} style={styles.timePrimary}>
+                        {formatCardHour(new Date(group.intervalStart))}
+                      </Text>
+                      <Text numberOfLines={1} style={styles.timeSecondary}>
+                        – {formatCardHour(new Date(group.intervalEnd), true)}
+                      </Text>
+                    </>
+                  ) : null}
+                </View>
+                <View style={styles.activityColumn}>
+                  <Text style={styles.emoji}>{group.emoji ?? '—'}</Text>
                   <Text numberOfLines={1} style={styles.label}>
-                    {group.status === 'skipped' ? '쉬어간 시간' : group.activityLabel}
+                    {group.status === 'skipped' ? '쉬어감' : group.activityLabel}
+                  </Text>
+                  <Text style={[styles.duration, { color: activityColor }]}>
+                    {formatGroupDuration(group)}
                   </Text>
                 </View>
-                {showTimes ? (
-                  <Text style={styles.time}>
-                    {formatHourRange(
-                      new Date(group.intervalStart),
-                      new Date(group.intervalEnd),
-                    )}{' '}
-                    · {formatGroupDuration(group)}
-                  </Text>
-                ) : null}
-                {showNotes && group.notes.length > 0 ? (
-                  <Text numberOfLines={1} style={styles.note}>
-                    {group.notes.slice(0, 2).join(' · ')}
-                  </Text>
-                ) : null}
+                <View style={styles.detailColumn}>
+                  {showNotes && group.notes.length > 0 ? (
+                    <Text numberOfLines={2} style={styles.note}>
+                      {group.notes.slice(0, 2).join('\n')}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
-            </View>
-          ))
+            );
+          })
         ) : (
-          <Text style={styles.empty}>아직 남긴 장면이 없어도 괜찮아요.</Text>
+          <View style={styles.emptyRow}>
+            <Text style={styles.empty}>아직 남긴 기록이 없어요.</Text>
+          </View>
         )}
         {hiddenCount > 0 ? (
-          <Text style={styles.more}>그리고 {hiddenCount}개의 장면</Text>
+          <View style={styles.moreRow}>
+            <Text style={styles.more}>외 {hiddenCount}개의 활동</Text>
+          </View>
         ) : null}
       </View>
 
@@ -100,6 +128,15 @@ export function ShareCard({
       </View>
     </View>
   );
+}
+
+function formatCardHour(date: Date, omitPeriod = false) {
+  const hour = date.getHours();
+  const minute = date.getMinutes();
+  const period = hour < 12 ? '오전' : '오후';
+  const hour12 = hour % 12 || 12;
+  const time = minute === 0 ? `${hour12}시` : `${hour12}:${String(minute).padStart(2, '0')}`;
+  return omitPeriod ? time : `${period} ${time}`;
 }
 
 const styles = StyleSheet.create({
@@ -148,70 +185,107 @@ const styles = StyleSheet.create({
     fontSize: 26,
   },
   date: {
-    marginTop: 32,
+    marginTop: 24,
     color: '#C8C1CB',
     fontSize: 13,
     fontWeight: '600',
   },
   title: {
-    marginTop: 10,
+    marginTop: 8,
     color: colors.white,
-    fontSize: 27,
+    fontSize: 24,
     fontWeight: '900',
-    lineHeight: 38,
+    lineHeight: 33,
     letterSpacing: -0.8,
   },
-  rule: {
-    width: 40,
-    height: 3,
-    marginVertical: 24,
-    borderRadius: 2,
-    backgroundColor: colors.coral,
+  schedule: {
+    overflow: 'hidden',
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#57515D',
+    borderRadius: 18,
+    backgroundColor: '#3E3945',
   },
-  moments: {
-    gap: 14,
-  },
-  momentRow: {
-    minHeight: 31,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  emoji: {
-    width: 32,
-    fontSize: 18,
-  },
-  momentCopy: {
-    flex: 1,
-  },
-  labelRow: {
+  scheduleHeader: {
+    height: 28,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 12,
+    backgroundColor: '#2B2731',
+  },
+  columnHeading: {
+    color: '#99919D',
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  scheduleRow: {
+    position: 'relative',
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  scheduleRowBorder: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#5A5460',
+  },
+  rowAccent: {
+    position: 'absolute',
+    top: 10,
+    bottom: 10,
+    left: 0,
+    width: 3,
+    borderTopRightRadius: 3,
+    borderBottomRightRadius: 3,
+  },
+  timeColumn: { width: 64 },
+  activityColumn: { width: 82 },
+  detailColumn: { flex: 1 },
+  timePrimary: {
+    color: '#F1EBF2',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  timeSecondary: {
+    marginTop: 3,
+    color: '#AFA7B3',
+    fontSize: 8,
+  },
+  emoji: {
+    fontSize: 15,
   },
   label: {
-    flex: 1,
+    marginTop: 2,
     color: '#F6F1F7',
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '900',
   },
-  time: {
-    marginTop: 3,
-    color: '#AFA7B3',
-    fontSize: 9,
+  duration: {
+    marginTop: 2,
+    fontSize: 7,
+    fontWeight: '800',
   },
   note: {
-    marginTop: 3,
-    color: '#BDB5C0',
-    fontSize: 10,
+    color: '#D8D1DA',
+    fontSize: 9,
+    lineHeight: 14,
   },
+  emptyRow: { minHeight: 80, alignItems: 'center', justifyContent: 'center' },
   empty: {
     color: '#C8C1CB',
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 11,
+  },
+  moreRow: {
+    alignItems: 'center',
+    paddingVertical: 7,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#5A5460',
   },
   more: {
-    marginLeft: 32,
     color: '#AFA7B3',
-    fontSize: 10,
+    fontSize: 8,
   },
   footer: {
     marginTop: 'auto',

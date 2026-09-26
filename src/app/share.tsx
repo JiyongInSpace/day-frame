@@ -46,7 +46,7 @@ export default function ShareScreen() {
   const { records, loading } = useDayRecords(selectedDate);
   const cardRef = useRef<View>(null);
   const [showTimes, setShowTimes] = useState(true);
-  const [showNotes, setShowNotes] = useState(false);
+  const [showNotes, setShowNotes] = useState(true);
   const [excludedIds, setExcludedIds] = useState<Set<number>>(new Set());
   const [busyAction, setBusyAction] = useState<'save' | 'share' | null>(null);
   const visibleRecords = useMemo(
@@ -121,7 +121,7 @@ export default function ShareScreen() {
         <View style={styles.topRow}>
           <View>
             <Text style={styles.heading}>공유할 장면 고르기</Text>
-            <Text style={styles.description}>시간은 표시되고 메모는 기본으로 숨겨져 있어요.</Text>
+            <Text style={styles.description}>시간과 메모가 기본으로 표시돼요.</Text>
           </View>
           <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.closeButton}>
             <Text style={styles.closeText}>닫기</Text>
