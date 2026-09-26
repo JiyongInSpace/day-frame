@@ -14,7 +14,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { completeOnboarding } from '@/db/settings';
+import {
+  completeOnboarding,
+  DEFAULT_REMINDER_PREFERENCES,
+  saveReminderPreferences,
+} from '@/db/settings';
+import { enableReminders } from '@/services/notifications';
 import { colors } from '@/theme/colors';
 
 const pages = [
@@ -49,16 +54,24 @@ export default function OnboardingScreen() {
   const [saving, setSaving] = useState(false);
   const isLastPage = page === pages.length - 1;
 
-  const finish = async () => {
+  const finish = async (enableNotifications: boolean) => {
     if (saving) return;
     setSaving(true);
-    await completeOnboarding(db);
-    router.replace('/(tabs)');
+    try {
+      if (enableNotifications) {
+        await saveReminderPreferences(db, DEFAULT_REMINDER_PREFERENCES);
+        await enableReminders(DEFAULT_REMINDER_PREFERENCES);
+      }
+      await completeOnboarding(db);
+      router.replace('/(tabs)');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const next = () => {
     if (isLastPage) {
-      void finish();
+      void finish(true);
       return;
     }
     scrollRef.current?.scrollTo({ x: width * (page + 1), animated: true });
@@ -123,9 +136,19 @@ export default function OnboardingScreen() {
           style={({ pressed }) => [styles.nextButton, pressed && styles.pressed]}
         >
           <Text style={styles.nextButtonText}>
-            {isLastPage ? '하루프레임 시작하기' : '다음'}
+            {isLastPage ? '알림 켜고 시작하기' : '다음'}
           </Text>
         </Pressable>
+        {isLastPage ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={saving}
+            onPress={() => void finish(false)}
+            style={({ pressed }) => [styles.laterButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.laterButtonText}>나중에</Text>
+          </Pressable>
+        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -183,5 +206,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.night,
   },
   nextButtonText: { color: colors.white, fontSize: 16, fontWeight: '900' },
+  laterButton: { marginTop: 4, paddingVertical: 13, alignItems: 'center' },
+  laterButtonText: { color: colors.muted, fontSize: 13, fontWeight: '800' },
   pressed: { opacity: 0.7 },
 });
