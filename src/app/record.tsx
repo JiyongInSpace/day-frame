@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
@@ -39,6 +39,8 @@ const activities: ActivityOption[] = [
 
 export default function RecordScreen() {
   const db = useSQLiteContext();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const customInputY = useRef(0);
   const { start } = useLocalSearchParams<{ start?: string }>();
   const interval = useMemo(() => {
     const requestedStart = Number(start);
@@ -156,6 +158,15 @@ export default function RecordScreen() {
     setSelectedSource('custom');
   };
 
+  const revealCustomInput = () => {
+    requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(customInputY.current - 16, 0),
+        animated: true,
+      });
+    });
+  };
+
   const removeRecord = () => {
     Alert.alert('이 기록을 삭제할까요?', '삭제하면 이 시간은 다시 미기록으로 표시돼요.', [
       { text: '취소', style: 'cancel' },
@@ -179,6 +190,7 @@ export default function RecordScreen() {
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
+          ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.time}>{formatHourRange(interval.start, interval.end)}</Text>
@@ -231,23 +243,20 @@ export default function RecordScreen() {
             </Pressable>
           </View>
 
-          <Pressable
-            accessibilityRole="button"
-            disabled={saving || loadingRecord}
-            onPress={() => void continuePrevious()}
-            style={({ pressed }) => [styles.continueButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.continueIcon}>↻</Text>
-            <Text style={styles.continueText}>아까 하던 거 계속</Text>
-          </Pressable>
-
           {showCustomInput ? (
-            <View style={styles.inputSection}>
+            <View
+              onLayout={({ nativeEvent }) => {
+                customInputY.current = nativeEvent.layout.y;
+              }}
+              style={styles.inputSection}
+            >
               <Text style={styles.inputLabel}>어떤 활동이었어요?</Text>
               <View style={styles.customRow}>
                 <TextInput
+                  autoFocus
                   maxLength={24}
                   onChangeText={setCustomActivity}
+                  onFocus={revealCustomInput}
                   placeholder="예: 산책, 회의, 낮잠"
                   placeholderTextColor="#A69D94"
                   style={styles.customInput}
@@ -264,6 +273,16 @@ export default function RecordScreen() {
               </View>
             </View>
           ) : null}
+
+          <Pressable
+            accessibilityRole="button"
+            disabled={saving || loadingRecord}
+            onPress={() => void continuePrevious()}
+            style={({ pressed }) => [styles.continueButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.continueIcon}>↻</Text>
+            <Text style={styles.continueText}>아까 하던 거 계속</Text>
+          </Pressable>
 
           <View style={styles.inputSection}>
             <Text style={styles.inputLabel}>짧은 메모 · 선택</Text>
