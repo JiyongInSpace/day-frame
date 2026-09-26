@@ -59,6 +59,7 @@ export default function RecordScreen() {
   const intervalStart = interval.start.getTime();
   const [note, setNote] = useState('');
   const [customActivity, setCustomActivity] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<ActivityOption | null>(null);
   const [selectedSource, setSelectedSource] = useState<RecordSource>('quick');
   const [existingRecordId, setExistingRecordId] = useState<number | null>(null);
@@ -80,15 +81,18 @@ export default function RecordScreen() {
       setSelectedSource(record?.source ?? 'quick');
 
       if (record?.status === 'recorded' && record.activityKey && record.activityLabel) {
+        const isCustom = record.activityKey.startsWith('custom:');
         setSelectedActivity({
           key: record.activityKey,
           label: record.activityLabel,
           emoji: record.emoji ?? '✏️',
         });
-        setCustomActivity(record.activityKey.startsWith('custom:') ? record.activityLabel : '');
+        setCustomActivity(isCustom ? record.activityLabel : '');
+        setShowCustomInput(isCustom);
       } else {
         setSelectedActivity(null);
         setCustomActivity('');
+        setShowCustomInput(false);
       }
       setLoadingRecord(false);
     }
@@ -138,6 +142,8 @@ export default function RecordScreen() {
       emoji: previous.emoji,
     });
     setSelectedSource('continued');
+    setCustomActivity(previous.activityKey.startsWith('custom:') ? previous.activityLabel : '');
+    setShowCustomInput(previous.activityKey.startsWith('custom:'));
   };
 
   const selectCustom = () => {
@@ -193,6 +199,7 @@ export default function RecordScreen() {
                 onPress={() => {
                   setSelectedActivity(activity);
                   setSelectedSource('quick');
+                  setShowCustomInput(false);
                 }}
                 style={({ pressed }) => [
                   styles.activity,
@@ -204,6 +211,24 @@ export default function RecordScreen() {
                 <Text style={styles.activityLabel}>{activity.label}</Text>
               </Pressable>
             ))}
+            <Pressable
+              accessibilityState={{ selected: showCustomInput }}
+              accessibilityRole="button"
+              disabled={saving || loadingRecord}
+              onPress={() => {
+                setSelectedActivity(null);
+                setSelectedSource('custom');
+                setShowCustomInput(true);
+              }}
+              style={({ pressed }) => [
+                styles.activity,
+                showCustomInput && styles.activitySelected,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.activityEmoji}>✏️</Text>
+              <Text style={styles.activityLabel}>기타</Text>
+            </Pressable>
           </View>
 
           <Pressable
@@ -216,27 +241,29 @@ export default function RecordScreen() {
             <Text style={styles.continueText}>아까 하던 거 계속</Text>
           </Pressable>
 
-          <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>다른 활동</Text>
-            <View style={styles.customRow}>
-              <TextInput
-                maxLength={24}
-                onChangeText={setCustomActivity}
-                placeholder="직접 입력"
-                placeholderTextColor="#A69D94"
-                style={styles.customInput}
-                value={customActivity}
-              />
-              <Pressable
-                accessibilityRole="button"
-                disabled={saving || loadingRecord}
-                onPress={selectCustom}
-                style={({ pressed }) => [styles.customSave, pressed && styles.pressed]}
-              >
-                <Text style={styles.customSaveText}>선택</Text>
-              </Pressable>
+          {showCustomInput ? (
+            <View style={styles.inputSection}>
+              <Text style={styles.inputLabel}>어떤 활동이었어요?</Text>
+              <View style={styles.customRow}>
+                <TextInput
+                  maxLength={24}
+                  onChangeText={setCustomActivity}
+                  placeholder="예: 산책, 회의, 낮잠"
+                  placeholderTextColor="#A69D94"
+                  style={styles.customInput}
+                  value={customActivity}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={saving || loadingRecord}
+                  onPress={selectCustom}
+                  style={({ pressed }) => [styles.customSave, pressed && styles.pressed]}
+                >
+                  <Text style={styles.customSaveText}>선택</Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
+          ) : null}
 
           <View style={styles.inputSection}>
             <Text style={styles.inputLabel}>짧은 메모 · 선택</Text>
@@ -333,20 +360,20 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   activityGrid: {
-    marginTop: 28,
+    marginTop: 24,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
   activity: {
-    width: '47.8%',
-    paddingHorizontal: 16,
-    paddingVertical: 17,
+    minHeight: 42,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: 19,
+    borderRadius: 22,
     backgroundColor: colors.surface,
   },
   activitySelected: {
@@ -354,12 +381,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.coralSoft,
   },
   activityEmoji: {
-    fontSize: 23,
+    fontSize: 17,
   },
   activityLabel: {
-    marginLeft: 10,
+    marginLeft: 6,
     color: colors.ink,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '800',
   },
   pressed: {
@@ -367,23 +394,25 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.99 }],
   },
   continueButton: {
-    marginTop: 11,
-    paddingVertical: 15,
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    borderRadius: 18,
+    borderRadius: 22,
     backgroundColor: colors.night,
   },
   continueIcon: {
-    marginRight: 9,
+    marginRight: 7,
     color: colors.apricot,
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '800',
   },
   continueText: {
     color: colors.white,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '800',
   },
   inputSection: {
