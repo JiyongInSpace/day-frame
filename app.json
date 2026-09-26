@@ -33,6 +33,15 @@
           "color": "#EB806D",
           "defaultChannel": "activity-reminders"
         }
+      ],
+      "expo-sharing",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "DayFrame 카드 저장을 위해 사진 접근을 허용해 주세요.",
+          "savePhotosPermission": "DayFrame 카드를 사진 앱에 저장하도록 허용해 주세요.",
+          "granularPermissions": ["photo"]
+        }
       ]
     ],
     "experiments": {

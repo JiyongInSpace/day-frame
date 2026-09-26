@@ -54,6 +54,7 @@ export default function RootLayout() {
             title: '지난 한 시간',
           }}
         />
+        <Stack.Screen name="share" options={{ headerShown: false, presentation: 'modal' }} />
       </Stack>
     </SQLiteProvider>
   );

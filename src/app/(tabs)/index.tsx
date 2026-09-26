@@ -48,6 +48,16 @@ export default function TodayScreen() {
           <Text style={styles.arrow}>›</Text>
         </Pressable>
 
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="오늘 카드 저장 또는 공유"
+          onPress={() => router.push('/share')}
+          style={({ pressed }) => [styles.shareButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.shareIcon}>↗</Text>
+          <Text style={styles.shareText}>오늘 카드 저장 · 공유</Text>
+        </Pressable>
+
         <Text style={styles.privacyNote}>
           기록은 이 기기에만 머물러. 공유는 네가 원할 때만 할 수 있어.
         </Text>
@@ -155,5 +165,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 19,
     textAlign: 'center',
+  },
+  shareButton: {
+    marginTop: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 18,
+    backgroundColor: colors.night,
+  },
+  shareIcon: {
+    color: colors.apricot,
+    fontSize: 19,
+    fontWeight: '800',
+  },
+  shareText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
