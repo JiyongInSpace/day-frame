@@ -5,9 +5,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DayCard } from '@/components/DayCard';
 import { useDayRecords } from '@/hooks/useDayRecords';
 import { colors } from '@/theme/colors';
+import { getLastCompletedHour } from '@/utils/time';
 
 export default function TodayScreen() {
   const { records, loading } = useDayRecords();
+  const latestIntervalStart = getLastCompletedHour().start.getTime();
+  const hasLatestRecord = records.some((record) => record.intervalStart === latestIntervalStart);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -20,9 +23,14 @@ export default function TodayScreen() {
             <Text style={styles.brand}>하루프레임</Text>
             <Text style={styles.subtitle}>오늘은 어떻게 흘러가고 있어요?</Text>
           </View>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>D</Text>
-          </View>
+          <Pressable
+            accessibilityLabel="설정 열기"
+            accessibilityRole="button"
+            onPress={() => router.push('/settings')}
+            style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.settingsIcon}>⚙</Text>
+          </Pressable>
         </View>
 
         {loading ? (
@@ -39,11 +47,12 @@ export default function TodayScreen() {
           style={({ pressed }) => [styles.recordButton, pressed && styles.pressed]}
         >
           <View style={styles.plusCircle}>
-            <Text style={styles.plus}>＋</Text>
+            <Text style={styles.plus}>{hasLatestRecord ? '✎' : '＋'}</Text>
           </View>
           <View style={styles.buttonCopy}>
-            <Text style={styles.buttonTitle}>지난 한 시간 기록하기</Text>
-            <Text style={styles.buttonSubtitle}>몇 번의 탭이면 충분해요</Text>
+            <Text style={styles.buttonTitle}>
+              {hasLatestRecord ? '지난 한 시간 기록 수정하기' : '지난 한 시간 기록하기'}
+            </Text>
           </View>
           <Text style={styles.arrow}>›</Text>
         </Pressable>
@@ -93,7 +102,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 14,
   },
-  avatar: {
+  settingsButton: {
     width: 42,
     height: 42,
     alignItems: 'center',
@@ -101,10 +110,10 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     backgroundColor: colors.coralSoft,
   },
-  avatarText: {
+  settingsIcon: {
     color: colors.coral,
-    fontSize: 17,
-    fontWeight: '900',
+    fontSize: 20,
+    fontWeight: '800',
   },
   loadingCard: {
     height: 510,
@@ -147,11 +156,6 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 16,
     fontWeight: '800',
-  },
-  buttonSubtitle: {
-    marginTop: 3,
-    color: colors.muted,
-    fontSize: 12,
   },
   arrow: {
     color: colors.muted,

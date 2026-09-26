@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import type { ActivityRecord } from '@/db/records';
 import { colors } from '@/theme/colors';
+import { countRecordedActivities, formatActivityCountTitle } from '@/utils/activity-summary';
 import { formatHourRange, formatKoreanDate, getHourlySlots } from '@/utils/time';
 
 type DayCardProps = {
@@ -9,23 +10,9 @@ type DayCardProps = {
   now?: Date;
 };
 
-function getDominantActivity(records: ActivityRecord[]) {
-  const counts = new Map<string, { count: number; emoji: string }>();
-
-  records
-    .filter((record) => record.status === 'recorded' && record.activityLabel)
-    .forEach((record) => {
-      const label = record.activityLabel ?? '';
-      const current = counts.get(label) ?? { count: 0, emoji: record.emoji ?? '•' };
-      counts.set(label, { ...current, count: current.count + 1 });
-    });
-
-  return [...counts.entries()].sort((a, b) => b[1].count - a[1].count)[0] ?? null;
-}
-
 export function DayCard({ records, now = new Date() }: DayCardProps) {
   const recorded = records.filter((record) => record.status === 'recorded');
-  const dominant = getDominantActivity(records);
+  const activityCount = countRecordedActivities(records);
   const totalSlots = getHourlySlots(now).length;
   const unansweredCount = Math.max(0, totalSlots - records.length);
   const recent = [...records].reverse().slice(0, 3);
@@ -39,8 +26,8 @@ export function DayCard({ records, now = new Date() }: DayCardProps) {
 
       <Text style={styles.date}>{formatKoreanDate(now)}</Text>
       <Text style={styles.title}>
-        {dominant
-          ? `${dominant[1].emoji} ${dominant[0]}의 결이\n남은 하루였어요`
+        {recorded.length > 0
+          ? formatActivityCountTitle(activityCount)
           : '아직 비어 있는 오늘도\n천천히 채워질 거예요'}
       </Text>
 

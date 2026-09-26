@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import type { ActivityRecord } from '@/db/records';
 import { colors } from '@/theme/colors';
+import { countRecordedActivities, formatActivityCountTitle } from '@/utils/activity-summary';
 import { formatHourRange, formatKoreanDate, getHourlySlots } from '@/utils/time';
 
 type ShareCardProps = {
@@ -11,20 +12,6 @@ type ShareCardProps = {
   showTimes?: boolean;
 };
 
-function getDominantActivity(records: ActivityRecord[]) {
-  const counts = new Map<string, { count: number; emoji: string }>();
-
-  records
-    .filter((record) => record.status === 'recorded' && record.activityLabel)
-    .forEach((record) => {
-      const label = record.activityLabel ?? '';
-      const current = counts.get(label) ?? { count: 0, emoji: record.emoji ?? '•' };
-      counts.set(label, { count: current.count + 1, emoji: current.emoji });
-    });
-
-  return [...counts.entries()].sort((a, b) => b[1].count - a[1].count)[0] ?? null;
-}
-
 export function ShareCard({
   records,
   date = new Date(),
@@ -32,7 +19,7 @@ export function ShareCard({
   showTimes = false,
 }: ShareCardProps) {
   const recorded = records.filter((record) => record.status === 'recorded');
-  const dominant = getDominantActivity(records);
+  const activityCount = countRecordedActivities(records);
   const totalSlots = getHourlySlots(date).length;
   const unansweredCount = Math.max(0, totalSlots - records.length);
   const visible = [...records].reverse().slice(0, 5);
@@ -50,8 +37,8 @@ export function ShareCard({
 
       <Text style={styles.date}>{formatKoreanDate(date)}</Text>
       <Text style={styles.title}>
-        {dominant
-          ? `${dominant[1].emoji} ${dominant[0]}의 결이\n남은 하루였어요`
+        {recorded.length > 0
+          ? formatActivityCountTitle(activityCount)
           : '비어 있는 순간까지\n오늘의 모양이에요'}
       </Text>
 
